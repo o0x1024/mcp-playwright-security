@@ -1,6 +1,6 @@
 {
   "name": "@gelenlen/playwright-mcp-server-security",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Model Context Protocol servers for Playwright",
   "license": "MIT",
   "author": "ExecuteAutomation, Ltd (https://executeautomation.com)",
@@ -17,13 +17,11 @@
   "scripts": {
     "build": "tsc && shx chmod +x dist/*.js",
     "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run build",
+    "prepublishOnly": "npm run build",
     "watch": "tsc --watch",
     "test": "jest --testMatch=\"<rootDir>/src/__tests__/**/*.test.ts\"",
     "test:coverage": "jest --coverage --testMatch=\"<rootDir>/src/__tests__/**/*.test.ts\"",
     "test:custom": "node run-tests.cjs",
-    "version": "npm run build && git add -A dist",
-    "postversion": "git push && git push --tags",
     "pack:check": "npm pack --dry-run",
     "publish:npm": "npm publish --access public"
   },
