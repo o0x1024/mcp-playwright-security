@@ -1,37 +1,9 @@
-<div align="center" markdown="1">
-  <table>
-    <tr>
-      <td align="center" valign="middle">
-        <a href="https://mseep.ai/app/executeautomation-mcp-playwright">
-          <img src="https://mseep.net/pr/executeautomation-mcp-playwright-badge.png" alt="MseeP.ai Security Assessment Badge" height="80"/>
-        </a>
-      </td>
-      <td align="center" valign="middle">
-        <a href="https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=mcp-playwright">
-          <img alt="Warp sponsorship" width="200" src="https://github.com/user-attachments/assets/ab8dd143-b0fd-4904-bdc5-dd7ecac94eae"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td align="center"><sub>MseeP.ai Security Assessment</sub></td>
-      <td align="center"><sub>Special thanks to <a href="https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=mcp-playwright">Warp, the AI terminal for developers</a></sub></td>
-    </tr>
-  </table>
-</div>
-<hr>
 
-# Playwright MCP Server 🎭
+# Playwright MCP Server for Security 🎭
 
-[![smithery badge](https://smithery.ai/badge/@executeautomation/playwright-mcp-server-security)](https://smithery.ai/server/@executeautomation/playwright-mcp-server-security)
 
 A Model Context Protocol server that provides browser automation capabilities using Playwright. This server enables LLMs to interact with web pages, take screenshots, generate test code, web scraps the page and execute JavaScript in a real browser environment.
 
-<a href="https://glama.ai/mcp/servers/yh4lgtwgbe"><img width="380" height="200" src="https://glama.ai/mcp/servers/yh4lgtwgbe/badge" alt="mcp-playwright MCP server" /></a>
-
-## Screenshot
-![Playwright + Claude](image/playwright_claude.png)
-
-## [Documentation](https://executeautomation.github.io/mcp-playwright/) | [API reference](https://executeautomation.github.io/mcp-playwright/docs/playwright-web/Supported-Tools)
 
 ## Installation
 
@@ -39,27 +11,18 @@ You can install the package using either npm, mcp-get, or Smithery:
 
 Using npm:
 ```bash
-npm install -g @executeautomation/playwright-mcp-server-security
+npm install -g @gelenlen/playwright-mcp-server-security
 ```
 
-Using mcp-get:
-```bash
-npx @michaellatman/mcp-get@latest install @executeautomation/playwright-mcp-server-security
-```
-Using Smithery
 
-To install Playwright MCP for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@executeautomation/playwright-mcp-server-security):
 
-```bash
-npx @smithery/cli install @executeautomation/playwright-mcp-server-security --client claude
-```
 #### Installation in VS Code
 
 Install the Playwright MCP server in VS Code using one of these buttons:
 
 <!--
 // Generate using?:
-const config = JSON.stringify({ name: 'playwright', command: 'npx', args: ["-y", "@executeautomation/playwright-mcp-server-security"] });
+const config = JSON.stringify({ name: 'playwright', command: 'npx', args: ["-y", "@gelenlen/playwright-mcp-server-security"] });
 const urlForWebsites = `vscode:mcp/install?${encodeURIComponent(config)}`;
 // Github markdown does not allow linking to `vscode:` directly, so you can use our redirect:
 const urlForGithub = `https://insiders.vscode.dev/redirect?url=${encodeURIComponent(urlForWebsites)}`;
@@ -72,12 +35,12 @@ Alternatively, you can install the Playwright MCP server using the VS Code CLI:
 
 ```bash
 # For VS Code
-code --add-mcp '{"name":"playwright","command":"npx","args":["@executeautomation/playwright-mcp-server-security"]}'
+code --add-mcp '{"name":"playwright","command":"npx","args":["@gelenlen/playwright-mcp-server-security"]}'
 ```
 
 ```bash
 # For VS Code Insiders
-code-insiders --add-mcp '{"name":"playwright","command":"npx","args":["@executeautomation/playwright-mcp-server-security"]}'
+code-insiders --add-mcp '{"name":"playwright","command":"npx","args":["@gelenlen/playwright-mcp-server-security"]}'
 ```
 
 After installation, the ExecuteAutomation Playwright MCP server will be available for use with your GitHub Copilot agent in VS Code.
@@ -90,7 +53,7 @@ Here's the Claude Desktop configuration to use the Playwright server:
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@executeautomation/playwright-mcp-server-security"]
+      "args": ["-y", "@gelenlen/playwright-mcp-server-security"]
     }
   }
 }
