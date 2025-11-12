@@ -101,7 +101,7 @@ echo ""
 
 # 8. 确认发布
 echo -e "${YELLOW}8. 准备发布到 NPM...${NC}"
-echo -e "   包名: ${GREEN}@executeautomation/playwright-mcp-server-security${NC}"
+echo -e "   包名: ${GREEN}@gelenlen/playwright-mcp-server-security${NC}"
 echo -e "   版本: ${GREEN}${NEW_VERSION}${NC}"
 read -p "确认发布? (y/N) " -n 1 -r
 echo
@@ -137,11 +137,11 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  发布完成！${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo -e "包地址: ${GREEN}https://www.npmjs.com/package/@executeautomation/playwright-mcp-server-security${NC}"
-echo -e "安装命令: ${GREEN}npx -y @executeautomation/playwright-mcp-server-security${NC}"
+echo -e "包地址: ${GREEN}https://www.npmjs.com/package/@gelenlen/playwright-mcp-server-security${NC}"
+echo -e "安装命令: ${GREEN}npx -y @gelenlen/playwright-mcp-server-security${NC}"
 echo ""
 echo -e "${YELLOW}建议操作:${NC}"
 echo "  1. 访问 NPM 页面确认发布成功"
-echo "  2. 测试安装: npx -y @executeautomation/playwright-mcp-server-security"
+echo "  2. 测试安装: npx -y @gelenlen/playwright-mcp-server-security"
 echo "  3. 更新 CHANGELOG.md"
 echo "  4. 在 GitHub 创建 Release"

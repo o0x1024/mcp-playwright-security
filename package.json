@@ -1,5 +1,5 @@
 {
-  "name": "@o0x1024/playwright-mcp-server-security",
+  "name": "@gelenlen/playwright-mcp-server-security",
   "version": "0.0.1",
   "description": "Model Context Protocol servers for Playwright",
   "license": "MIT",

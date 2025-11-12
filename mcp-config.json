@@ -2,7 +2,7 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@executeautomation/playwright-mcp-server-security"]
+      "args": ["-y", "@gelenlen/playwright-mcp-server-security"]
     }
   }
 }
