@@ -52,7 +52,12 @@ export class ScreenshotTool extends BrowserToolBase {
       const screenshot = await page.screenshot(screenshotOptions);
       const base64Screenshot = screenshot.toString('base64');
 
-      const messages = [`Screenshot saved to: ${path.relative(process.cwd(), outputPath)}`];
+      const messages: string[] = [];
+
+      // 仅在 savePng 为 true 时保存文件
+      if (args.savePng !== false) {
+        messages.push(`Screenshot saved to: ${path.relative(process.cwd(), outputPath)}`);
+      }
 
       // Handle base64 storage
       if (args.storeBase64 !== false) {
@@ -60,11 +65,24 @@ export class ScreenshotTool extends BrowserToolBase {
         this.server.notification({
           method: "notifications/resources/list_changed",
         });
-
-        messages.push(`Screenshot also stored in memory with name: '${args.name || 'screenshot'}'`);
+        messages.push(`Screenshot stored in memory with name: '${args.name || 'screenshot'}'`);
       }
 
-      return createSuccessResponse(messages);
+      // 直接在响应中返回 base64 图片数据
+      return {
+        content: [
+          ...messages.map(msg => ({
+            type: "text" as const,
+            text: msg
+          })),
+          {
+            type: "image" as const,
+            data: base64Screenshot,
+            mimeType: "image/png"
+          }
+        ],
+        isError: false
+      };
     });
   }
 
