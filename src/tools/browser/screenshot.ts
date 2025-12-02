@@ -68,24 +68,27 @@ export class ScreenshotTool extends BrowserToolBase {
         messages.push(`Screenshot stored in memory with name: '${args.name || 'screenshot'}'`);
       }
 
-      // 返回 base64 图片数据
-      // 在文本内容末尾添加 JSON 格式的截图数据，便于解析
+      // Build response content
+      const content: any[] = messages.map(msg => ({
+        type: "text" as const,
+        text: msg
+      }));
+
+      // Only include base64 data when storeBase64 is true
+      if (args.storeBase64 !== false) {
+        content.push({
+          type: "text" as const,
+          text: JSON.stringify({ screenshot_base64: base64Screenshot, mimeType: "image/png" })
+        });
+        content.push({
+          type: "image" as const,
+          data: base64Screenshot,
+          mimeType: "image/png"
+        });
+      }
+
       return {
-        content: [
-          ...messages.map(msg => ({
-            type: "text" as const,
-            text: msg
-          })),
-          {
-            type: "text" as const,
-            text: JSON.stringify({ screenshot_base64: base64Screenshot, mimeType: "image/png" })
-          },
-          {
-            type: "image" as const,
-            data: base64Screenshot,
-            mimeType: "image/png"
-          }
-        ],
+        content,
         isError: false
       };
     });

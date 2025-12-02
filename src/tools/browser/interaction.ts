@@ -26,7 +26,7 @@ export class ClickTool extends BrowserToolBase {
       // Support selector-based clicking
       if (args.selector) {
         await page.click(args.selector, { button });
-        return createSuccessResponse(`Clicked element: ${args.selector}`);
+      return createSuccessResponse(`Clicked element: ${args.selector}`);
       }
       
       return createErrorResponse('Either selector or coordinate is required for click action');

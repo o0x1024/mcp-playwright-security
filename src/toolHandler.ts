@@ -17,7 +17,12 @@ import {
   ConsoleLogsTool,
   ExpectResponseTool,
   AssertResponseTool,
-  CustomUserAgentTool
+  CustomUserAgentTool,
+  AnnotateElementsTool,
+  RemoveAnnotationsTool,
+  AnnotatedScreenshotTool,
+  ClickByIndexTool,
+  getAutoAnnotationInitScript
 } from './tools/browser/index.js';
 import {
   ClickTool,
@@ -49,6 +54,7 @@ import { ClickAndSwitchTabTool } from './tools/browser/interaction.js';
 let browser: Browser | undefined;
 let page: Page | undefined;
 let currentBrowserType: 'chromium' | 'firefox' | 'webkit' = 'chromium';
+let autoAnnotationEnabled = true; // Enable auto-annotation by default
 
 /**
  * Resets browser and page variables
@@ -100,6 +106,12 @@ let dragTool: DragTool;
 let pressKeyTool: PressKeyTool;
 let saveAsPdfTool: SaveAsPdfTool;
 let clickAndSwitchTabTool: ClickAndSwitchTabTool;
+
+// Element annotation tools
+let annotateElementsTool: AnnotateElementsTool;
+let removeAnnotationsTool: RemoveAnnotationsTool;
+let annotatedScreenshotTool: AnnotatedScreenshotTool;
+let clickByIndexTool: ClickByIndexTool;
 
 
 interface BrowserSettings {
@@ -236,6 +248,11 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
 
       // Register console message handler
       await registerConsoleMessage(page);
+      
+      // Setup auto-annotation
+      if (autoAnnotationEnabled) {
+        await setupAutoAnnotation(page);
+      }
     }
     
     // Verify page is still valid
@@ -247,6 +264,11 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
       
       // Re-register console message handler
       await registerConsoleMessage(page);
+      
+      // Setup auto-annotation
+      if (autoAnnotationEnabled) {
+        await setupAutoAnnotation(page);
+      }
     }
     
     return page!;
@@ -306,8 +328,35 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
     
     await registerConsoleMessage(page);
     
+    // Setup auto-annotation
+    if (autoAnnotationEnabled) {
+      await setupAutoAnnotation(page);
+    }
+    
     return page!;
   }
+}
+
+/**
+ * Setup auto-annotation for a page
+ */
+async function setupAutoAnnotation(page: Page) {
+  // Add init script for auto-annotation on every navigation
+  await page.addInitScript(getAutoAnnotationInitScript());
+}
+
+/**
+ * Enable or disable auto-annotation
+ */
+export function setAutoAnnotation(enabled: boolean) {
+  autoAnnotationEnabled = enabled;
+}
+
+/**
+ * Get auto-annotation status
+ */
+export function isAutoAnnotationEnabled(): boolean {
+  return autoAnnotationEnabled;
 }
 
 /**
@@ -356,6 +405,12 @@ function initializeTools(server: any) {
   if (!pressKeyTool) pressKeyTool = new PressKeyTool(server);
   if (!saveAsPdfTool) saveAsPdfTool = new SaveAsPdfTool(server);
   if (!clickAndSwitchTabTool) clickAndSwitchTabTool = new ClickAndSwitchTabTool(server);
+  
+  // Element annotation tools
+  if (!annotateElementsTool) annotateElementsTool = new AnnotateElementsTool(server);
+  if (!removeAnnotationsTool) removeAnnotationsTool = new RemoveAnnotationsTool(server);
+  if (!annotatedScreenshotTool) annotatedScreenshotTool = new AnnotatedScreenshotTool(server);
+  if (!clickByIndexTool) clickByIndexTool = new ClickByIndexTool(server);
 }
 
 /**
@@ -560,6 +615,64 @@ export async function handleToolCall(
         return await saveAsPdfTool.execute(args, context);
       case "playwright_click_and_switch_tab":
         return await clickAndSwitchTabTool.execute(args, context);
+      
+      // Element annotation tools
+      case "playwright_annotate":
+        return await annotateElementsTool.execute(args, context);
+      case "playwright_remove_annotations":
+        return await removeAnnotationsTool.execute(args, context);
+      case "playwright_annotated_screenshot":
+        return await annotatedScreenshotTool.execute(args, context);
+      case "playwright_click_by_index":
+        return await clickByIndexTool.execute(args, context);
+      case "playwright_set_auto_annotation":
+        setAutoAnnotation(args.enabled);
+        return {
+          content: [{
+            type: "text",
+            text: `Auto-annotation ${args.enabled ? 'enabled' : 'disabled'}`,
+          }],
+          isError: false,
+        };
+      case "playwright_get_annotated_elements":
+        if (context.page) {
+          try {
+            const elements = await context.page.evaluate(() => {
+              return (window as any).__playwrightAnnotatedElements || [];
+            });
+            const summary = elements.map((el: any) => 
+              `[${el.index}] ${el.type.toUpperCase()} (${el.boundingBox.x},${el.boundingBox.y}) - ${el.text || el.selector}`
+            ).join('\n');
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Found ${elements.length} annotated elements:\n\n${summary}`
+                },
+                {
+                  type: "text",
+                  text: JSON.stringify({ annotated_elements: elements })
+                }
+              ],
+              isError: false,
+            };
+          } catch (error) {
+            return {
+              content: [{
+                type: "text",
+                text: `Failed to get annotated elements: ${(error as Error).message}`,
+              }],
+              isError: true,
+            };
+          }
+        }
+        return {
+          content: [{
+            type: "text",
+            text: "No page available",
+          }],
+          isError: true,
+        };
       
       default:
         return {

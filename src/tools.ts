@@ -464,6 +464,70 @@ export function createToolDefinitions() {
         required: ["selector"],
       },
     },
+    {
+      name: "playwright_annotate",
+      description: "Annotate all interactive elements (buttons, links, inputs, etc.) on the current page with colored boxes and index numbers. Returns a list of elements with their coordinates and properties.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: "playwright_remove_annotations",
+      description: "Remove all element annotations from the current page",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: "playwright_annotated_screenshot",
+      description: "Take a screenshot with all interactive elements annotated (highlighted with colored boxes and index numbers). Returns both the screenshot and a list of annotated elements with their coordinates.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Name for the screenshot" },
+          fullPage: { type: "boolean", description: "Capture the entire page (default: false)" },
+          removeAfter: { type: "boolean", description: "Remove annotations after taking screenshot (default: true)" },
+          savePng: { type: "boolean", description: "Save screenshot as PNG file (default: true)" },
+          downloadsDir: { type: "string", description: "Custom downloads directory path" },
+        },
+        required: [],
+      },
+    },
+    {
+      name: "playwright_click_by_index",
+      description: "Click an element by its annotation index number. Must call playwright_annotate or playwright_annotated_screenshot first to get element indices.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "The annotation index number of the element to click" },
+        },
+        required: ["index"],
+      },
+    },
+    {
+      name: "playwright_set_auto_annotation",
+      description: "Enable or disable automatic element annotation. When enabled (default), all interactive elements are automatically highlighted with colored boxes and index numbers when a page loads or changes.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          enabled: { type: "boolean", description: "Whether to enable auto-annotation (default: true)" },
+        },
+        required: ["enabled"],
+      },
+    },
+    {
+      name: "playwright_get_annotated_elements",
+      description: "Get the list of currently annotated elements on the page. Returns element information including index, type, coordinates, and text.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
   ] as const satisfies Tool[];
 }
 
@@ -490,7 +554,13 @@ export const BROWSER_TOOLS = [
   "playwright_drag",
   "playwright_press_key",
   "playwright_save_as_pdf",
-  "playwright_click_and_switch_tab"
+  "playwright_click_and_switch_tab",
+  "playwright_annotate",
+  "playwright_remove_annotations",
+  "playwright_annotated_screenshot",
+  "playwright_click_by_index",
+  "playwright_set_auto_annotation",
+  "playwright_get_annotated_elements"
 ];
 
 // API Request tools for conditional launch
