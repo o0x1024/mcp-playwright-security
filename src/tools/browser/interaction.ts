@@ -3,15 +3,33 @@ import { ToolContext, ToolResponse, createSuccessResponse, createErrorResponse }
 import { setGlobalPage } from '../../toolHandler.js';
 /**
  * Tool for clicking elements on the page
+ * Supports both CSS selector and coordinate-based clicking
  */
 export class ClickTool extends BrowserToolBase {
   /**
    * Execute the click tool
+   * @param args.selector - CSS selector for element to click
+   * @param args.coordinate - [x, y] coordinates for mouse click (alternative to selector)
+   * @param args.button - Mouse button: 'left', 'right', 'middle' (default: 'left')
    */
   async execute(args: any, context: ToolContext): Promise<ToolResponse> {
     return this.safeExecute(context, async (page) => {
-      await page.click(args.selector);      
-      return createSuccessResponse(`Clicked element: ${args.selector}`);
+      const button = args.button || 'left';
+      
+      // Support coordinate-based clicking (for vision-based agents)
+      if (args.coordinate && Array.isArray(args.coordinate) && args.coordinate.length === 2) {
+        const [x, y] = args.coordinate;
+        await page.mouse.click(x, y, { button });
+        return createSuccessResponse(`Clicked at coordinates (${x}, ${y}) with ${button} button`);
+      }
+      
+      // Support selector-based clicking
+      if (args.selector) {
+        await page.click(args.selector, { button });
+        return createSuccessResponse(`Clicked element: ${args.selector}`);
+      }
+      
+      return createErrorResponse('Either selector or coordinate is required for click action');
     });
   }
 }

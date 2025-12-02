@@ -123,13 +123,23 @@ export function createToolDefinitions() {
     },
     {
       name: "playwright_click",
-      description: "Click an element on the page",
+      description: "Click an element on the page. Supports both CSS selector and coordinate-based clicking for vision-based agents.",
       inputSchema: {
         type: "object",
         properties: {
           selector: { type: "string", description: "CSS selector for the element to click" },
+          coordinate: { 
+            type: "array", 
+            items: { type: "number" },
+            description: "Screen coordinates [x, y] for mouse click (alternative to selector)" 
+          },
+          button: { 
+            type: "string", 
+            enum: ["left", "right", "middle"],
+            description: "Mouse button to use (default: left)" 
+          },
         },
-        required: ["selector"],
+        required: [],
       },
     },
     {
