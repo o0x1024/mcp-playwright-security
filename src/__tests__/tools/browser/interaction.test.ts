@@ -123,8 +123,8 @@ describe('Browser Interaction Tools', () => {
 
       const result = await clickTool.execute(args, mockContext);
 
-      // The actual implementation uses page.click directly, not locator
-      expect(mockPageClick).toHaveBeenCalledWith('#test-button');
+      // The actual implementation uses page.click with button option
+      expect(mockPageClick).toHaveBeenCalledWith('#test-button', { button: 'left' });
       expect(result.isError).toBe(false);
       expect(result.content[0].text).toContain('Clicked element');
     });
@@ -139,9 +139,36 @@ describe('Browser Interaction Tools', () => {
 
       const result = await clickTool.execute(args, mockContext);
 
-      expect(mockPageClick).toHaveBeenCalledWith('#test-button');
+      expect(mockPageClick).toHaveBeenCalledWith('#test-button', { button: 'left' });
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Operation failed');
+    });
+
+    test('should click at coordinates', async () => {
+      const mockMouseClick = jest.fn().mockImplementation(() => Promise.resolve());
+      (mockPage as any).mouse = { click: mockMouseClick };
+
+      const args = {
+        coordinate: [100, 200]
+      };
+
+      const result = await clickTool.execute(args, mockContext);
+
+      expect(mockMouseClick).toHaveBeenCalledWith(100, 200, { button: 'left' });
+      expect(result.isError).toBe(false);
+      expect(result.content[0].text).toContain('Clicked at coordinates');
+    });
+
+    test('should click with custom button', async () => {
+      const args = {
+        selector: '#test-button',
+        button: 'right'
+      };
+
+      const result = await clickTool.execute(args, mockContext);
+
+      expect(mockPageClick).toHaveBeenCalledWith('#test-button', { button: 'right' });
+      expect(result.isError).toBe(false);
     });
 
     test('should handle missing page', async () => {
