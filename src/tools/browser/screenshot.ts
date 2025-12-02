@@ -69,17 +69,17 @@ export class ScreenshotTool extends BrowserToolBase {
       }
 
       // 返回 base64 图片数据
-      // 在文本内容中添加 JSON 格式的截图数据，便于解析
+      // 在文本内容末尾添加 JSON 格式的截图数据，便于解析
       return {
         content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify({ screenshot_base64: base64Screenshot, mimeType: "image/png" })
-          },
           ...messages.map(msg => ({
             type: "text" as const,
             text: msg
           })),
+          {
+            type: "text" as const,
+            text: JSON.stringify({ screenshot_base64: base64Screenshot, mimeType: "image/png" })
+          },
           {
             type: "image" as const,
             data: base64Screenshot,
