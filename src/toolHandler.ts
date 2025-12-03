@@ -20,7 +20,6 @@ import {
   CustomUserAgentTool,
   AnnotateElementsTool,
   RemoveAnnotationsTool,
-  AnnotatedScreenshotTool,
   ClickByIndexTool,
   getAutoAnnotationInitScript
 } from './tools/browser/index.js';
@@ -110,7 +109,6 @@ let clickAndSwitchTabTool: ClickAndSwitchTabTool;
 // Element annotation tools
 let annotateElementsTool: AnnotateElementsTool;
 let removeAnnotationsTool: RemoveAnnotationsTool;
-let annotatedScreenshotTool: AnnotatedScreenshotTool;
 let clickByIndexTool: ClickByIndexTool;
 
 
@@ -409,7 +407,6 @@ function initializeTools(server: any) {
   // Element annotation tools
   if (!annotateElementsTool) annotateElementsTool = new AnnotateElementsTool(server);
   if (!removeAnnotationsTool) removeAnnotationsTool = new RemoveAnnotationsTool(server);
-  if (!annotatedScreenshotTool) annotatedScreenshotTool = new AnnotatedScreenshotTool(server);
   if (!clickByIndexTool) clickByIndexTool = new ClickByIndexTool(server);
 }
 
@@ -621,8 +618,6 @@ export async function handleToolCall(
         return await annotateElementsTool.execute(args, context);
       case "playwright_remove_annotations":
         return await removeAnnotationsTool.execute(args, context);
-      case "playwright_annotated_screenshot":
-        return await annotatedScreenshotTool.execute(args, context);
       case "playwright_click_by_index":
         return await clickByIndexTool.execute(args, context);
       case "playwright_set_auto_annotation":

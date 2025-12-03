@@ -483,23 +483,8 @@ export function createToolDefinitions() {
       },
     },
     {
-      name: "playwright_annotated_screenshot",
-      description: "Take a screenshot with all interactive elements annotated (highlighted with colored boxes and index numbers). Returns both the screenshot and a list of annotated elements with their coordinates.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "Name for the screenshot" },
-          fullPage: { type: "boolean", description: "Capture the entire page (default: false)" },
-          removeAfter: { type: "boolean", description: "Remove annotations after taking screenshot (default: true)" },
-          savePng: { type: "boolean", description: "Save screenshot as PNG file (default: true)" },
-          downloadsDir: { type: "string", description: "Custom downloads directory path" },
-        },
-        required: [],
-      },
-    },
-    {
       name: "playwright_click_by_index",
-      description: "Click an element by its annotation index number. Must call playwright_annotate or playwright_annotated_screenshot first to get element indices.",
+      description: "Click an element by its annotation index number. Use playwright_annotate or playwright_get_annotated_elements first to get element indices.",
       inputSchema: {
         type: "object",
         properties: {
@@ -557,7 +542,6 @@ export const BROWSER_TOOLS = [
   "playwright_click_and_switch_tab",
   "playwright_annotate",
   "playwright_remove_annotations",
-  "playwright_annotated_screenshot",
   "playwright_click_by_index",
   "playwright_set_auto_annotation",
   "playwright_get_annotated_elements"
