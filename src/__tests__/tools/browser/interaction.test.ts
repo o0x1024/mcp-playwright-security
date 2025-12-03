@@ -16,11 +16,15 @@ const mockWaitForLoadState = jest.fn().mockImplementation(() => Promise.resolve(
 const mockBringToFront = jest.fn().mockImplementation(() => Promise.resolve());
 const mockUrl = jest.fn().mockReturnValue('https://example.com');
 
+// Mock new page evaluate
+const mockNewPageEvaluate = jest.fn().mockImplementation(() => Promise.resolve());
+
 // Mock new page
 const mockNewPage = {
   waitForLoadState: mockWaitForLoadState,
   bringToFront: mockBringToFront,
   url: mockUrl,
+  evaluate: mockNewPageEvaluate,
 } as unknown as Page;
 
 
