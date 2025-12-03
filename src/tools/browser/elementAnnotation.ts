@@ -64,27 +64,119 @@ export function getAutoAnnotationInitScript() {
             
             // Find all interactive elements
             const selectors = [
+              // Native HTML elements
               'a[href]',
               'button',
               'input:not([type="hidden"])',
               'select',
               'textarea',
+              'label[for]',
+              'summary',
+              
+              // ARIA roles
               '[role="button"]',
               '[role="link"]',
               '[role="checkbox"]',
               '[role="radio"]',
               '[role="menuitem"]',
+              '[role="menuitemcheckbox"]',
+              '[role="menuitemradio"]',
               '[role="tab"]',
+              '[role="switch"]',
+              '[role="option"]',
+              '[role="treeitem"]',
+              '[role="gridcell"]',
+              '[role="row"][onclick]',
+              '[role="listitem"]',
+              
+              // Event handlers
               '[onclick]',
               '[ng-click]',
               '[v-on\\\\3A click]',
-              'label[for]',
-              'summary',
               '[contenteditable="true"]',
-              '[tabindex]:not([tabindex="-1"])'
+              '[tabindex]:not([tabindex="-1"])',
+              
+              // Element UI / Element Plus
+              '.el-button',
+              '.el-link',
+              '.el-checkbox',
+              '.el-radio',
+              '.el-switch',
+              '.el-input__inner',
+              '.el-select',
+              '.el-dropdown',
+              '.el-menu-item',
+              '.el-submenu__title',
+              '.el-tabs__item',
+              '.el-pagination button',
+              '.el-pagination li',
+              '.el-table__row',
+              '.el-tree-node__content',
+              '.el-upload',
+              '.el-date-editor',
+              '.el-cascader',
+              '.el-tag',
+              '.el-breadcrumb__item',
+              
+              // Ant Design
+              '.ant-btn',
+              '.ant-input',
+              '.ant-select',
+              '.ant-checkbox',
+              '.ant-radio',
+              '.ant-switch',
+              '.ant-menu-item',
+              '.ant-tabs-tab',
+              '.ant-pagination-item',
+              '.ant-table-row',
+              '.ant-tree-node-content-wrapper',
+              '.ant-dropdown-trigger',
+              '.ant-tag',
+              
+              // Bootstrap
+              '.btn',
+              '.nav-link',
+              '.dropdown-item',
+              '.page-link',
+              '.list-group-item-action',
+              
+              // Common patterns
+              '[class*="btn"]',
+              '[class*="click"]',
+              '[class*="link"]',
+              '.icon-btn',
+              '.action',
+              '.clickable',
+              '.pointer'
             ];
             
-            const elements = document.querySelectorAll(selectors.join(','));
+            // Get elements by selectors
+            const selectorElements = document.querySelectorAll(selectors.join(','));
+            const elementSet = new Set(selectorElements);
+            
+            // Also find elements with cursor:pointer style (common for clickable elements)
+            document.querySelectorAll('*').forEach(el => {
+              try {
+                const style = window.getComputedStyle(el);
+                if (style.cursor === 'pointer' && !elementSet.has(el)) {
+                  // Skip if parent is already in the set
+                  let parent = el.parentElement;
+                  let parentInSet = false;
+                  while (parent) {
+                    if (elementSet.has(parent)) {
+                      parentInSet = true;
+                      break;
+                    }
+                    parent = parent.parentElement;
+                  }
+                  if (!parentInSet) {
+                    elementSet.add(el);
+                  }
+                }
+              } catch (e) {}
+            });
+            
+            const elements = Array.from(elementSet);
             const results = [];
             let index = 0;
             
@@ -104,6 +196,11 @@ export function getAutoAnnotationInitScript() {
                 // Skip elements outside viewport
                 if (rect.bottom < 0 || rect.top > window.innerHeight ||
                     rect.right < 0 || rect.left > window.innerWidth) {
+                  return;
+                }
+                
+                // Skip very small elements (likely icons inside buttons)
+                if (rect.width < 10 || rect.height < 10) {
                   return;
                 }
                 
@@ -285,27 +382,118 @@ function getAnnotationScript() {
       
       // Find all interactive elements
       const selectors = [
+        // Native HTML elements
         'a[href]',
         'button',
         'input:not([type="hidden"])',
         'select',
         'textarea',
+        'label[for]',
+        'summary',
+        
+        // ARIA roles
         '[role="button"]',
         '[role="link"]',
         '[role="checkbox"]',
         '[role="radio"]',
         '[role="menuitem"]',
+        '[role="menuitemcheckbox"]',
+        '[role="menuitemradio"]',
         '[role="tab"]',
+        '[role="switch"]',
+        '[role="option"]',
+        '[role="treeitem"]',
+        '[role="gridcell"]',
+        '[role="row"][onclick]',
+        '[role="listitem"]',
+        
+        // Event handlers
         '[onclick]',
         '[ng-click]',
         '[v-on\\\\3A click]',
-        'label[for]',
-        'summary',
         '[contenteditable="true"]',
-        '[tabindex]:not([tabindex="-1"])'
+        '[tabindex]:not([tabindex="-1"])',
+        
+        // Element UI / Element Plus
+        '.el-button',
+        '.el-link',
+        '.el-checkbox',
+        '.el-radio',
+        '.el-switch',
+        '.el-input__inner',
+        '.el-select',
+        '.el-dropdown',
+        '.el-menu-item',
+        '.el-submenu__title',
+        '.el-tabs__item',
+        '.el-pagination button',
+        '.el-pagination li',
+        '.el-table__row',
+        '.el-tree-node__content',
+        '.el-upload',
+        '.el-date-editor',
+        '.el-cascader',
+        '.el-tag',
+        '.el-breadcrumb__item',
+        
+        // Ant Design
+        '.ant-btn',
+        '.ant-input',
+        '.ant-select',
+        '.ant-checkbox',
+        '.ant-radio',
+        '.ant-switch',
+        '.ant-menu-item',
+        '.ant-tabs-tab',
+        '.ant-pagination-item',
+        '.ant-table-row',
+        '.ant-tree-node-content-wrapper',
+        '.ant-dropdown-trigger',
+        '.ant-tag',
+        
+        // Bootstrap
+        '.btn',
+        '.nav-link',
+        '.dropdown-item',
+        '.page-link',
+        '.list-group-item-action',
+        
+        // Common patterns
+        '[class*="btn"]',
+        '[class*="click"]',
+        '[class*="link"]',
+        '.icon-btn',
+        '.action',
+        '.clickable',
+        '.pointer'
       ];
       
-      const elements = document.querySelectorAll(selectors.join(','));
+      // Get elements by selectors
+      const selectorElements = document.querySelectorAll(selectors.join(','));
+      const elementSet = new Set(selectorElements);
+      
+      // Also find elements with cursor:pointer style
+      document.querySelectorAll('*').forEach(el => {
+        try {
+          const style = window.getComputedStyle(el);
+          if (style.cursor === 'pointer' && !elementSet.has(el)) {
+            let parent = el.parentElement;
+            let parentInSet = false;
+            while (parent) {
+              if (elementSet.has(parent)) {
+                parentInSet = true;
+                break;
+              }
+              parent = parent.parentElement;
+            }
+            if (!parentInSet) {
+              elementSet.add(el);
+            }
+          }
+        } catch (e) {}
+      });
+      
+      const elements = Array.from(elementSet);
       const results = [];
       let index = 0;
       
@@ -324,6 +512,11 @@ function getAnnotationScript() {
         // Skip elements outside viewport
         if (rect.bottom < 0 || rect.top > window.innerHeight ||
             rect.right < 0 || rect.left > window.innerWidth) {
+          return;
+        }
+        
+        // Skip very small elements
+        if (rect.width < 10 || rect.height < 10) {
           return;
         }
         
