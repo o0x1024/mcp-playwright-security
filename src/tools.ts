@@ -1,80 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { codegenTools } from './tools/codegen';
 
 export function createToolDefinitions() {
   return [
-    // Codegen tools
-    {
-      name: "start_codegen_session",
-      description: "Start a new code generation session to record Playwright actions",
-      inputSchema: {
-        type: "object",
-        properties: {
-          options: {
-            type: "object",
-            description: "Code generation options",
-            properties: {
-              outputPath: { 
-                type: "string", 
-                description: "Directory path where generated tests will be saved (use absolute path)" 
-              },
-              testNamePrefix: { 
-                type: "string", 
-                description: "Prefix to use for generated test names (default: 'GeneratedTest')" 
-              },
-              includeComments: { 
-                type: "boolean", 
-                description: "Whether to include descriptive comments in generated tests" 
-              }
-            },
-            required: ["outputPath"]
-          }
-        },
-        required: ["options"]
-      }
-    },
-    {
-      name: "end_codegen_session",
-      description: "End a code generation session and generate the test file",
-      inputSchema: {
-        type: "object",
-        properties: {
-          sessionId: { 
-            type: "string", 
-            description: "ID of the session to end" 
-          }
-        },
-        required: ["sessionId"]
-      }
-    },
-    {
-      name: "get_codegen_session",
-      description: "Get information about a code generation session",
-      inputSchema: {
-        type: "object",
-        properties: {
-          sessionId: { 
-            type: "string", 
-            description: "ID of the session to retrieve" 
-          }
-        },
-        required: ["sessionId"]
-      }
-    },
-    {
-      name: "clear_codegen_session",
-      description: "Clear a code generation session without generating a test",
-      inputSchema: {
-        type: "object",
-        properties: {
-          sessionId: { 
-            type: "string", 
-            description: "ID of the session to clear" 
-          }
-        },
-        required: ["sessionId"]
-      }
-    },
     {
       name: "playwright_navigate",
       description: "Navigate to a URL",
@@ -203,18 +130,6 @@ export function createToolDefinitions() {
       },
     },
     {
-      name: "playwright_upload_file",
-      description: "Upload a file to an input[type='file'] element on the page",
-      inputSchema: {
-        type: "object",
-        properties: {
-          selector: { type: "string", description: "CSS selector for the file input element" },
-          filePath: { type: "string", description: "Absolute path to the file to upload" }
-        },
-        required: ["selector", "filePath"],
-      },
-    },
-    {
       name: "playwright_evaluate",
       description: "Execute JavaScript in the browser console",
       inputSchema: {
@@ -262,70 +177,6 @@ export function createToolDefinitions() {
       },
     },
     {
-      name: "playwright_get",
-      description: "Perform an HTTP GET request",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "URL to perform GET operation" }
-        },
-        required: ["url"],
-      },
-    },
-    {
-      name: "playwright_post",
-      description: "Perform an HTTP POST request",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "URL to perform POST operation" },
-          value: { type: "string", description: "Data to post in the body" },
-          token: { type: "string", description: "Bearer token for authorization" },
-          headers: { 
-            type: "object", 
-            description: "Additional headers to include in the request",
-            additionalProperties: { type: "string" }
-          }
-        },
-        required: ["url", "value"],
-      },
-    },
-    {
-      name: "playwright_put",
-      description: "Perform an HTTP PUT request",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "URL to perform PUT operation" },
-          value: { type: "string", description: "Data to PUT in the body" },
-        },
-        required: ["url", "value"],
-      },
-    },
-    {
-      name: "playwright_patch",
-      description: "Perform an HTTP PATCH request",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "URL to perform PUT operation" },
-          value: { type: "string", description: "Data to PATCH in the body" },
-        },
-        required: ["url", "value"],
-      },
-    },
-    {
-      name: "playwright_delete",
-      description: "Perform an HTTP DELETE request",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "URL to perform DELETE operation" }
-        },
-        required: ["url"],
-      },
-    },
-    {
       name: "playwright_expect_response",
       description: "Ask Playwright to start waiting for a HTTP response. This tool initiates the wait operation but does not wait for its completion.",
       inputSchema: {
@@ -335,18 +186,6 @@ export function createToolDefinitions() {
           url: { type: "string", description: "URL pattern to match in the response." }
         },
         required: ["id", "url"],
-      },
-    },
-    {
-      name: "playwright_assert_response",
-      description: "Wait for and validate a previously initiated HTTP response wait operation.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          id: { type: "string", description: "Identifier of the HTTP response initially expected using `Playwright_expect_response`." },
-          value: { type: "string", description: "Data to expect in the body of the HTTP response. If provided, the assertion will fail if this value is not found in the response body." }
-        },
-        required: ["id"],
       },
     },
     {
@@ -430,52 +269,8 @@ export function createToolDefinitions() {
       },
     },
     {
-      name: "playwright_save_as_pdf",
-      description: "Save the current page as a PDF file",
-      inputSchema: {
-        type: "object",
-        properties: {
-          outputPath: { type: "string", description: "Directory path where PDF will be saved" },
-          filename: { type: "string", description: "Name of the PDF file (default: page.pdf)" },
-          format: { type: "string", description: "Page format (e.g. 'A4', 'Letter')" },
-          printBackground: { type: "boolean", description: "Whether to print background graphics" },
-          margin: {
-            type: "object",
-            description: "Page margins",
-            properties: {
-              top: { type: "string" },
-              right: { type: "string" },
-              bottom: { type: "string" },
-              left: { type: "string" }
-            }
-          }
-        },
-        required: ["outputPath"],
-      },
-    },
-    {
-      name: "playwright_click_and_switch_tab",
-      description: "Click a link and switch to the newly opened tab",
-      inputSchema: {
-        type: "object",
-        properties: {
-          selector: { type: "string", description: "CSS selector for the link to click" },
-        },
-        required: ["selector"],
-      },
-    },
-    {
       name: "playwright_annotate",
       description: "Annotate all interactive elements (buttons, links, inputs, etc.) on the current page with colored boxes and index numbers. Returns a list of elements with their coordinates and properties.",
-      inputSchema: {
-        type: "object",
-        properties: {},
-        required: [],
-      },
-    },
-    {
-      name: "playwright_remove_annotations",
-      description: "Remove all element annotations from the current page",
       inputSchema: {
         type: "object",
         properties: {},
@@ -526,11 +321,9 @@ export const BROWSER_TOOLS = [
   "playwright_fill",
   "playwright_select",
   "playwright_hover",
-  "playwright_upload_file",
   "playwright_evaluate",
   "playwright_close",
   "playwright_expect_response",
-  "playwright_assert_response",
   "playwright_custom_user_agent",
   "playwright_get_visible_text",
   "playwright_get_visible_html",
@@ -538,35 +331,13 @@ export const BROWSER_TOOLS = [
   "playwright_go_forward",
   "playwright_drag",
   "playwright_press_key",
-  "playwright_save_as_pdf",
-  "playwright_click_and_switch_tab",
   "playwright_annotate",
-  "playwright_remove_annotations",
   "playwright_click_by_index",
   "playwright_set_auto_annotation",
   "playwright_get_annotated_elements"
 ];
 
-// API Request tools for conditional launch
-export const API_TOOLS = [
-  "playwright_get",
-  "playwright_post",
-  "playwright_put",
-  "playwright_delete",
-  "playwright_patch"
-];
-
-// Codegen tools
-export const CODEGEN_TOOLS = [
-  'start_codegen_session',
-  'end_codegen_session',
-  'get_codegen_session',
-  'clear_codegen_session'
-];
-
 // All available tools
 export const tools = [
-  ...BROWSER_TOOLS,
-  ...API_TOOLS,
-  ...CODEGEN_TOOLS
+  ...BROWSER_TOOLS
 ];

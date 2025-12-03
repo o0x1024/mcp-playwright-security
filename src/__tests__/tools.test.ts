@@ -1,4 +1,4 @@
-import { createToolDefinitions, BROWSER_TOOLS, API_TOOLS } from '../tools';
+import { createToolDefinitions, BROWSER_TOOLS } from '../tools';
 
 describe('Tool Definitions', () => {
   const toolDefinitions = createToolDefinitions();
@@ -23,15 +23,6 @@ describe('Tool Definitions', () => {
     expect(BROWSER_TOOLS.length).toBeGreaterThan(0);
     
     BROWSER_TOOLS.forEach(toolName => {
-      expect(toolDefinitions.some(tool => tool.name === toolName)).toBe(true);
-    });
-  });
-
-  test('API_TOOLS should contain API-related tool names', () => {
-    expect(Array.isArray(API_TOOLS)).toBe(true);
-    expect(API_TOOLS.length).toBeGreaterThan(0);
-    
-    API_TOOLS.forEach(toolName => {
       expect(toolDefinitions.some(tool => tool.name === toolName)).toBe(true);
     });
   });

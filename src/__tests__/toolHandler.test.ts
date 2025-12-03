@@ -274,20 +274,6 @@ describe('Tool Handler', () => {
     await handleToolCall('playwright_close', {}, mockServer);
   });
   
-  test('handleToolCall should handle API tools', async () => {
-    // Test a few representative API tools
-    const getResult = await handleToolCall('playwright_get', { url: 'https://api.example.com' }, mockServer);
-    expect(getResult).toBeDefined();
-    expect(getResult.content).toBeDefined();
-    
-    const postResult = await handleToolCall('playwright_post', { 
-      url: 'https://api.example.com', 
-      value: '{"data": "test"}' 
-    }, mockServer);
-    expect(postResult).toBeDefined();
-    expect(postResult.content).toBeDefined();
-  });
-
   test('getConsoleLogs should return console logs', () => {
     const logs = getConsoleLogs();
     expect(Array.isArray(logs)).toBe(true);
@@ -392,10 +378,4 @@ describe('Tool Handler', () => {
     delete process.env.CHROME_EXECUTABLE_PATH;
   });
 
-  test('should not launch browser for API tools', async () => {
-    const ensureBrowser = jest.spyOn(require('../toolHandler'), 'ensureBrowser');
-    await handleToolCall('playwright_get', { url: 'https://api.restful-api.dev/objects' }, mockServer);
-    expect(ensureBrowser).not.toHaveBeenCalled();
-    ensureBrowser.mockRestore();
-  });
 });

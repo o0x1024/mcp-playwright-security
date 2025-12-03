@@ -318,13 +318,13 @@ export function getAutoAnnotationInitScript() {
         let debounceTimer;
         function debouncedAnnotate() {
           clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(annotateElements, 300);
+          debounceTimer = setTimeout(annotateElements, 200);
         }
         
         // Setup function to initialize observers
         function setup() {
           if (!document.body) {
-            setTimeout(setup, 300);
+            setTimeout(setup, 100);
             return;
           }
           

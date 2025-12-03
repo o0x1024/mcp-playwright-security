@@ -1,25 +1,16 @@
 import type { Browser, Page } from 'playwright';
-import { chromium, firefox, webkit, request } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { BROWSER_TOOLS, API_TOOLS } from './tools.js';
+import { BROWSER_TOOLS } from './tools.js';
 import type { ToolContext } from './tools/common/types.js';
-import { ActionRecorder } from './tools/codegen/recorder.js';
-import { 
-  startCodegenSession,
-  endCodegenSession,
-  getCodegenSession,
-  clearCodegenSession
-} from './tools/codegen/index.js';
 import { 
   ScreenshotTool,
   NavigationTool,
   CloseBrowserTool,
   ConsoleLogsTool,
   ExpectResponseTool,
-  AssertResponseTool,
   CustomUserAgentTool,
   AnnotateElementsTool,
-  RemoveAnnotationsTool,
   ClickByIndexTool,
   getAutoAnnotationInitScript
 } from './tools/browser/index.js';
@@ -30,24 +21,14 @@ import {
   SelectTool,
   HoverTool,
   EvaluateTool,
-  IframeFillTool,
-  UploadFileTool
+  IframeFillTool
 } from './tools/browser/interaction.js';
 import { 
   VisibleTextTool, 
   VisibleHtmlTool 
 } from './tools/browser/visiblePage.js';
-import {
-  GetRequestTool,
-  PostRequestTool,
-  PutRequestTool,
-  PatchRequestTool,
-  DeleteRequestTool
-} from './tools/api/requests.js';
 import { GoBackTool, GoForwardTool } from './tools/browser/navigation.js';
 import { DragTool, PressKeyTool } from './tools/browser/interaction.js';
-import { SaveAsPdfTool } from './tools/browser/output.js';
-import { ClickAndSwitchTabTool } from './tools/browser/interaction.js';
 
 // Global state
 let browser: Browser | undefined;
@@ -84,31 +65,20 @@ let iframeFillTool: IframeFillTool;
 let fillTool: FillTool;
 let selectTool: SelectTool;
 let hoverTool: HoverTool;
-let uploadFileTool: UploadFileTool;
 let evaluateTool: EvaluateTool;
 let expectResponseTool: ExpectResponseTool;
-let assertResponseTool: AssertResponseTool;
 let customUserAgentTool: CustomUserAgentTool;
 let visibleTextTool: VisibleTextTool;
 let visibleHtmlTool: VisibleHtmlTool;
-
-let getRequestTool: GetRequestTool;
-let postRequestTool: PostRequestTool;
-let putRequestTool: PutRequestTool;
-let patchRequestTool: PatchRequestTool;
-let deleteRequestTool: DeleteRequestTool;
 
 // Add these variables at the top with other tool declarations
 let goBackTool: GoBackTool;
 let goForwardTool: GoForwardTool;
 let dragTool: DragTool;
 let pressKeyTool: PressKeyTool;
-let saveAsPdfTool: SaveAsPdfTool;
-let clickAndSwitchTabTool: ClickAndSwitchTabTool;
 
 // Element annotation tools
 let annotateElementsTool: AnnotateElementsTool;
-let removeAnnotationsTool: RemoveAnnotationsTool;
 let clickByIndexTool: ClickByIndexTool;
 
 
@@ -391,15 +361,6 @@ export function isAutoAnnotationEnabled(): boolean {
 }
 
 /**
- * Creates a new API request context
- */
-async function ensureApiContext(url: string) {
-  return await request.newContext({
-    baseURL: url,
-  });
-}
-
-/**
  * Initialize all tool instances
  */
 function initializeTools(server: any) {
@@ -414,32 +375,20 @@ function initializeTools(server: any) {
   if (!fillTool) fillTool = new FillTool(server);
   if (!selectTool) selectTool = new SelectTool(server);
   if (!hoverTool) hoverTool = new HoverTool(server);
-  if (!uploadFileTool) uploadFileTool = new UploadFileTool(server);
   if (!evaluateTool) evaluateTool = new EvaluateTool(server);
   if (!expectResponseTool) expectResponseTool = new ExpectResponseTool(server);
-  if (!assertResponseTool) assertResponseTool = new AssertResponseTool(server);
   if (!customUserAgentTool) customUserAgentTool = new CustomUserAgentTool(server);
   if (!visibleTextTool) visibleTextTool = new VisibleTextTool(server);
   if (!visibleHtmlTool) visibleHtmlTool = new VisibleHtmlTool(server);
-  
-  // API tools
-  if (!getRequestTool) getRequestTool = new GetRequestTool(server);
-  if (!postRequestTool) postRequestTool = new PostRequestTool(server);
-  if (!putRequestTool) putRequestTool = new PutRequestTool(server);
-  if (!patchRequestTool) patchRequestTool = new PatchRequestTool(server);
-  if (!deleteRequestTool) deleteRequestTool = new DeleteRequestTool(server);
 
   // Initialize new tools
   if (!goBackTool) goBackTool = new GoBackTool(server);
   if (!goForwardTool) goForwardTool = new GoForwardTool(server);
   if (!dragTool) dragTool = new DragTool(server);
   if (!pressKeyTool) pressKeyTool = new PressKeyTool(server);
-  if (!saveAsPdfTool) saveAsPdfTool = new SaveAsPdfTool(server);
-  if (!clickAndSwitchTabTool) clickAndSwitchTabTool = new ClickAndSwitchTabTool(server);
   
   // Element annotation tools
   if (!annotateElementsTool) annotateElementsTool = new AnnotateElementsTool(server);
-  if (!removeAnnotationsTool) removeAnnotationsTool = new RemoveAnnotationsTool(server);
   if (!clickByIndexTool) clickByIndexTool = new ClickByIndexTool(server);
 }
 
@@ -455,25 +404,6 @@ export async function handleToolCall(
   initializeTools(server);
 
   try {
-    // Handle codegen tools
-    switch (name) {
-      case 'start_codegen_session':
-        return await handleCodegenResult(startCodegenSession.handler(args));
-      case 'end_codegen_session':
-        return await handleCodegenResult(endCodegenSession.handler(args));
-      case 'get_codegen_session':
-        return await handleCodegenResult(getCodegenSession.handler(args));
-      case 'clear_codegen_session':
-        return await handleCodegenResult(clearCodegenSession.handler(args));
-    }
-
-    // Record tool action if there's an active session
-    const recorder = ActionRecorder.getInstance();
-    const activeSession = recorder.getActiveSession();
-    if (activeSession && name !== 'playwright_close') {
-      recorder.recordAction(name, args);
-    }
-
     // Special case for browser close to ensure it always works
     if (name === "playwright_close") {
       if (browser) {
@@ -547,21 +477,6 @@ export async function handleToolCall(
     }
   }
 
-    // Set up API context if needed
-    if (API_TOOLS.includes(name)) {
-      try {
-        context.apiContext = await ensureApiContext(args.url);
-      } catch (error) {
-        return {
-          content: [{
-            type: "text",
-            text: `Failed to initialize API context: ${(error as Error).message}`,
-          }],
-          isError: true,
-        };
-      }
-    }
-
     // Route to appropriate tool
     switch (name) {
       // Browser tools
@@ -594,18 +509,12 @@ export async function handleToolCall(
         
       case "playwright_hover":
         return await hoverTool.execute(args, context);
-
-      case "playwright_upload_file":
-        return await uploadFileTool.execute(args, context);
         
       case "playwright_evaluate":
         return await evaluateTool.execute(args, context);
 
       case "playwright_expect_response":
         return await expectResponseTool.execute(args, context);
-
-      case "playwright_assert_response":
-        return await assertResponseTool.execute(args, context);
 
       case "playwright_custom_user_agent":
         return await customUserAgentTool.execute(args, context);
@@ -615,22 +524,6 @@ export async function handleToolCall(
       
       case "playwright_get_visible_html":
         return await visibleHtmlTool.execute(args, context);
-        
-      // API tools
-      case "playwright_get":
-        return await getRequestTool.execute(args, context);
-        
-      case "playwright_post":
-        return await postRequestTool.execute(args, context);
-        
-      case "playwright_put":
-        return await putRequestTool.execute(args, context);
-        
-      case "playwright_patch":
-        return await patchRequestTool.execute(args, context);
-        
-      case "playwright_delete":
-        return await deleteRequestTool.execute(args, context);
       
       // New tools
       case "playwright_go_back":
@@ -641,16 +534,10 @@ export async function handleToolCall(
         return await dragTool.execute(args, context);
       case "playwright_press_key":
         return await pressKeyTool.execute(args, context);
-      case "playwright_save_as_pdf":
-        return await saveAsPdfTool.execute(args, context);
-      case "playwright_click_and_switch_tab":
-        return await clickAndSwitchTabTool.execute(args, context);
       
       // Element annotation tools
       case "playwright_annotate":
         return await annotateElementsTool.execute(args, context);
-      case "playwright_remove_annotations":
-        return await removeAnnotationsTool.execute(args, context);
       case "playwright_click_by_index":
         return await clickByIndexTool.execute(args, context);
       case "playwright_set_auto_annotation":
@@ -736,30 +623,6 @@ export async function handleToolCall(
       }
     }
 
-    return {
-      content: [{
-        type: "text",
-        text: error instanceof Error ? error.message : String(error),
-      }],
-      isError: true,
-    };
-  }
-}
-
-/**
- * Helper function to handle codegen tool results
- */
-async function handleCodegenResult(resultPromise: Promise<any>): Promise<CallToolResult> {
-  try {
-    const result = await resultPromise;
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify(result),
-      }],
-      isError: false,
-    };
-  } catch (error) {
     return {
       content: [{
         type: "text",
