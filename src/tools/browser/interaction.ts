@@ -51,13 +51,16 @@ export class ClickAndSwitchTabTool extends BrowserToolBase {
       ]);
 
       // Wait for the new page to load
-      await newPage.waitForLoadState('domcontentloaded');
+      await newPage.waitForLoadState('load');
 
       // Switch control to the new tab
       setGlobalPage(newPage);
       
-      // Execute auto-annotation on new tab if enabled
+      // Setup auto-annotation for new tab (both init script and immediate execution)
       if (isAutoAnnotationEnabled()) {
+        // Add init script for future navigations in this tab
+        await newPage.addInitScript(getAutoAnnotationInitScript());
+        // Execute immediately for current page
         await newPage.evaluate(getAutoAnnotationInitScript());
       }
       

@@ -16,8 +16,9 @@ const mockWaitForLoadState = jest.fn().mockImplementation(() => Promise.resolve(
 const mockBringToFront = jest.fn().mockImplementation(() => Promise.resolve());
 const mockUrl = jest.fn().mockReturnValue('https://example.com');
 
-// Mock new page evaluate
+// Mock new page functions
 const mockNewPageEvaluate = jest.fn().mockImplementation(() => Promise.resolve());
+const mockNewPageAddInitScript = jest.fn().mockImplementation(() => Promise.resolve());
 
 // Mock new page
 const mockNewPage = {
@@ -25,6 +26,7 @@ const mockNewPage = {
   bringToFront: mockBringToFront,
   url: mockUrl,
   evaluate: mockNewPageEvaluate,
+  addInitScript: mockNewPageAddInitScript,
 } as unknown as Page;
 
 
@@ -198,7 +200,7 @@ describe('Browser Interaction Tools', () => {
   
       expect(mockPageClick).toHaveBeenCalledWith('a#test-link');
       expect(mockWaitForEvent).toHaveBeenCalledWith('page');
-      expect(mockWaitForLoadState).toHaveBeenCalledWith('domcontentloaded');
+      expect(mockWaitForLoadState).toHaveBeenCalledWith('load');
       expect(result.isError).toBe(false);
       expect(result.content[0].text).toContain('Clicked link and switched to new tab');
       expect(result.content[0].text).toContain('https://example.com');
