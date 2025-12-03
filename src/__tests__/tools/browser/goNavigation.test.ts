@@ -7,12 +7,14 @@ import { jest } from '@jest/globals';
 const mockGoBack = jest.fn().mockImplementation(() => Promise.resolve());
 const mockGoForward = jest.fn().mockImplementation(() => Promise.resolve());
 const mockIsClosed = jest.fn().mockReturnValue(false);
+const mockEvaluate = jest.fn().mockImplementation(() => Promise.resolve());
 
 // Mock the Page object with proper typing
 const mockPage = {
   goBack: mockGoBack,
   goForward: mockGoForward,
-  isClosed: mockIsClosed
+  isClosed: mockIsClosed,
+  evaluate: mockEvaluate
 } as unknown as Page;
 
 // Mock the browser
