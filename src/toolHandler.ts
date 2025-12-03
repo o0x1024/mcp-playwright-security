@@ -242,6 +242,23 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
         deviceScaleFactor: 1,
       });
 
+      // Listen for new pages in this context
+      context.on('page', async (newPage) => {
+        console.error("New page opened in context");
+        await registerConsoleMessage(newPage);
+        if (autoAnnotationEnabled) {
+          await setupAutoAnnotation(newPage);
+          // Also execute immediately after page loads
+          newPage.on('load', async () => {
+            try {
+              await newPage.evaluate(getAutoAnnotationInitScript());
+            } catch (e) {
+              // Ignore errors
+            }
+          });
+        }
+      });
+
       page = await context.newPage();
 
       // Register console message handler
@@ -320,6 +337,22 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
         height: viewport?.height ?? 720,
       },
       deviceScaleFactor: 1,
+    });
+
+    // Listen for new pages in this context
+    context.on('page', async (newPage) => {
+      console.error("New page opened in context (retry)");
+      await registerConsoleMessage(newPage);
+      if (autoAnnotationEnabled) {
+        await setupAutoAnnotation(newPage);
+        newPage.on('load', async () => {
+          try {
+            await newPage.evaluate(getAutoAnnotationInitScript());
+          } catch (e) {
+            // Ignore errors
+          }
+        });
+      }
     });
 
     page = await context.newPage();
