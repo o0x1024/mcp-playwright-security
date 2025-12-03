@@ -1,6 +1,7 @@
 import { BrowserToolBase } from './base.js';
 import { ToolContext, ToolResponse, createSuccessResponse, createErrorResponse } from '../common/types.js';
-import { resetBrowserState } from '../../toolHandler.js';
+import { resetBrowserState, isAutoAnnotationEnabled } from '../../toolHandler.js';
+import { getAutoAnnotationInitScript } from './elementAnnotation.js';
 
 /**
  * Tool for navigating to URLs
@@ -32,6 +33,11 @@ export class NavigationTool extends BrowserToolBase {
           timeout: args.timeout || 30000,
           waitUntil: args.waitUntil || "load"
         });
+        
+        // Execute auto-annotation after navigation if enabled
+        if (isAutoAnnotationEnabled()) {
+          await page.evaluate(getAutoAnnotationInitScript());
+        }
         
         return createSuccessResponse(`Navigated to ${args.url}`);
       } catch (error) {
@@ -100,6 +106,12 @@ export class GoBackTool extends BrowserToolBase {
   async execute(args: any, context: ToolContext): Promise<ToolResponse> {
     return this.safeExecute(context, async (page) => {
       await page.goBack();
+      
+      // Execute auto-annotation after navigation if enabled
+      if (isAutoAnnotationEnabled()) {
+        await page.evaluate(getAutoAnnotationInitScript());
+      }
+      
       return createSuccessResponse("Navigated back in browser history");
     });
   }
@@ -115,6 +127,12 @@ export class GoForwardTool extends BrowserToolBase {
   async execute(args: any, context: ToolContext): Promise<ToolResponse> {
     return this.safeExecute(context, async (page) => {
       await page.goForward();
+      
+      // Execute auto-annotation after navigation if enabled
+      if (isAutoAnnotationEnabled()) {
+        await page.evaluate(getAutoAnnotationInitScript());
+      }
+      
       return createSuccessResponse("Navigated forward in browser history");
     });
   }

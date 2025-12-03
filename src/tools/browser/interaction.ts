@@ -1,6 +1,7 @@
 import { BrowserToolBase } from './base.js';
 import { ToolContext, ToolResponse, createSuccessResponse, createErrorResponse } from '../common/types.js';
-import { setGlobalPage } from '../../toolHandler.js';
+import { setGlobalPage, isAutoAnnotationEnabled } from '../../toolHandler.js';
+import { getAutoAnnotationInitScript } from './elementAnnotation.js';
 /**
  * Tool for clicking elements on the page
  * Supports both CSS selector and coordinate-based clicking
@@ -45,9 +46,8 @@ export class ClickAndSwitchTabTool extends BrowserToolBase {
     return this.safeExecute(context, async (page) => {
       // Listen for a new tab to open
       const [newPage] = await Promise.all([
-        //context.browser.waitForEvent('page'), // Wait for a new page (tab) to open
-        page.context().waitForEvent('page'),// Wait for a new page (tab) to open
-        page.click(args.selector), // Click the link that opens the new tab
+        page.context().waitForEvent('page'),
+        page.click(args.selector),
       ]);
 
       // Wait for the new page to load
@@ -55,11 +55,13 @@ export class ClickAndSwitchTabTool extends BrowserToolBase {
 
       // Switch control to the new tab
       setGlobalPage(newPage);
-      //page= newPage; // Update the current page to the new tab
-      //context.page = newPage;
-      //context.page.bringToFront(); // Bring the new tab to the front
+      
+      // Execute auto-annotation on new tab if enabled
+      if (isAutoAnnotationEnabled()) {
+        await newPage.evaluate(getAutoAnnotationInitScript());
+      }
+      
       return createSuccessResponse(`Clicked link and switched to new tab: ${newPage.url()}`);
-      //return createSuccessResponse(`Clicked link and switched to new tab: ${context.page.url()}`);
     });
   }
 }
