@@ -1,6 +1,6 @@
 {
   "name": "@gelenlen/playwright-mcp-server-security",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Model Context Protocol servers for Playwright",
   "license": "MIT",
   "author": "ExecuteAutomation, Ltd (https://executeautomation.com)",
