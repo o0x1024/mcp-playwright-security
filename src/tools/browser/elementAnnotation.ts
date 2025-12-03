@@ -46,208 +46,227 @@ const ELEMENT_COLORS: Record<string, string> = {
 export function getAutoAnnotationInitScript() {
   return `
     (function() {
-      // Skip if already initialized
-      if (window.__playwrightAnnotationInitialized) return;
-      window.__playwrightAnnotationInitialized = true;
-      
-      // Element type colors
-      const colors = ${JSON.stringify(ELEMENT_COLORS)};
-      
-      // Store current annotations data
-      window.__playwrightAnnotatedElements = [];
-      
-      // Annotation function
-      function annotateElements() {
-        // Remove existing annotations
-        const existingAnnotations = document.querySelectorAll('.playwright-element-annotation');
-        existingAnnotations.forEach(el => el.remove());
+      try {
+        // Element type colors
+        const colors = ${JSON.stringify(ELEMENT_COLORS)};
         
-        // Find all interactive elements
-        const selectors = [
-          'a[href]',
-          'button',
-          'input:not([type="hidden"])',
-          'select',
-          'textarea',
-          '[role="button"]',
-          '[role="link"]',
-          '[role="checkbox"]',
-          '[role="radio"]',
-          '[role="menuitem"]',
-          '[role="tab"]',
-          '[onclick]',
-          '[ng-click]',
-          '[v-on\\\\:click]',
-          '[@click]',
-          'label[for]',
-          'summary',
-          '[contenteditable="true"]',
-          '[tabindex]:not([tabindex="-1"])'
-        ];
+        // Store current annotations data
+        window.__playwrightAnnotatedElements = window.__playwrightAnnotatedElements || [];
         
-        const elements = document.querySelectorAll(selectors.join(','));
-        const results = [];
-        let index = 0;
+        // Annotation function
+        function annotateElements() {
+          try {
+            if (!document.body) return [];
+            
+            // Remove existing annotations
+            const existingAnnotations = document.querySelectorAll('.playwright-element-annotation');
+            existingAnnotations.forEach(el => el.remove());
+            
+            // Find all interactive elements
+            const selectors = [
+              'a[href]',
+              'button',
+              'input:not([type="hidden"])',
+              'select',
+              'textarea',
+              '[role="button"]',
+              '[role="link"]',
+              '[role="checkbox"]',
+              '[role="radio"]',
+              '[role="menuitem"]',
+              '[role="tab"]',
+              '[onclick]',
+              '[ng-click]',
+              '[v-on\\\\:click]',
+              '[@click]',
+              'label[for]',
+              'summary',
+              '[contenteditable="true"]',
+              '[tabindex]:not([tabindex="-1"])'
+            ];
+            
+            const elements = document.querySelectorAll(selectors.join(','));
+            const results = [];
+            let index = 0;
+            
+            elements.forEach((element) => {
+              try {
+                const rect = element.getBoundingClientRect();
+                const style = window.getComputedStyle(element);
+                
+                // Skip hidden elements
+                if (rect.width === 0 || rect.height === 0 || 
+                    style.display === 'none' || 
+                    style.visibility === 'hidden' ||
+                    style.opacity === '0') {
+                  return;
+                }
+                
+                // Skip elements outside viewport
+                if (rect.bottom < 0 || rect.top > window.innerHeight ||
+                    rect.right < 0 || rect.left > window.innerWidth) {
+                  return;
+                }
+                
+                // Determine element type
+                const tagName = element.tagName.toLowerCase();
+                let type = 'clickable';
+                
+                if (tagName === 'a') type = 'link';
+                else if (tagName === 'button' || element.getAttribute('role') === 'button') type = 'button';
+                else if (tagName === 'input') {
+                  const inputType = element.getAttribute('type') || 'text';
+                  if (inputType === 'submit' || inputType === 'button') type = 'submit';
+                  else if (inputType === 'checkbox') type = 'checkbox';
+                  else if (inputType === 'radio') type = 'radio';
+                  else if (inputType === 'file') type = 'file';
+                  else type = 'input';
+                }
+                else if (tagName === 'select') type = 'select';
+                else if (tagName === 'textarea') type = 'textarea';
+                else if (tagName === 'form') type = 'form';
+                
+                const color = colors[type] || colors.default;
+                
+                // Create annotation overlay
+                const annotation = document.createElement('div');
+                annotation.className = 'playwright-element-annotation';
+                annotation.style.cssText = 
+                  'position: fixed;' +
+                  'left: ' + rect.left + 'px;' +
+                  'top: ' + rect.top + 'px;' +
+                  'width: ' + rect.width + 'px;' +
+                  'height: ' + rect.height + 'px;' +
+                  'border: 2px solid ' + color + ';' +
+                  'background: ' + color + '20;' +
+                  'pointer-events: none;' +
+                  'z-index: 2147483646;' +
+                  'box-sizing: border-box;';
+                
+                // Create label with index number
+                const label = document.createElement('div');
+                label.className = 'playwright-element-annotation';
+                label.style.cssText = 
+                  'position: fixed;' +
+                  'left: ' + (rect.left - 2) + 'px;' +
+                  'top: ' + (rect.top - 18) + 'px;' +
+                  'background: ' + color + ';' +
+                  'color: white;' +
+                  'font-size: 11px;' +
+                  'font-weight: bold;' +
+                  'font-family: monospace;' +
+                  'padding: 1px 4px;' +
+                  'border-radius: 3px;' +
+                  'z-index: 2147483647;' +
+                  'pointer-events: none;' +
+                  'white-space: nowrap;';
+                label.textContent = index.toString();
+                
+                document.body.appendChild(annotation);
+                document.body.appendChild(label);
+                
+                // Build selector
+                let selector = '';
+                if (element.id) {
+                  selector = '#' + element.id;
+                } else {
+                  selector = tagName;
+                  const classes = Array.from(element.classList).slice(0, 2).join('.');
+                  if (classes) selector += '.' + classes;
+                }
+                
+                // Get text content
+                let text = '';
+                if (tagName === 'input' || tagName === 'textarea') {
+                  text = element.value || element.placeholder || '';
+                } else {
+                  text = element.innerText || element.textContent || '';
+                }
+                text = text.trim().substring(0, 100);
+                
+                // Collect attributes
+                const attrs = {};
+                ['href', 'type', 'name', 'placeholder', 'value', 'role', 'aria-label'].forEach(attr => {
+                  if (element.hasAttribute(attr)) {
+                    attrs[attr] = element.getAttribute(attr);
+                  }
+                });
+                
+                results.push({
+                  index: index,
+                  type: type,
+                  tagName: tagName,
+                  text: text,
+                  selector: selector,
+                  boundingBox: {
+                    x: Math.round(rect.left),
+                    y: Math.round(rect.top),
+                    width: Math.round(rect.width),
+                    height: Math.round(rect.height)
+                  },
+                  attributes: attrs
+                });
+                
+                index++;
+              } catch (e) {}
+            });
+            
+            window.__playwrightAnnotatedElements = results;
+            return results;
+          } catch (e) {
+            return [];
+          }
+        }
         
-        elements.forEach((element) => {
-          const rect = element.getBoundingClientRect();
-          const style = window.getComputedStyle(element);
-          
-          // Skip hidden elements
-          if (rect.width === 0 || rect.height === 0 || 
-              style.display === 'none' || 
-              style.visibility === 'hidden' ||
-              style.opacity === '0') {
+        // Debounce function
+        let debounceTimer;
+        function debouncedAnnotate() {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(annotateElements, 300);
+        }
+        
+        // Setup function to initialize observers
+        function setup() {
+          if (!document.body) {
+            setTimeout(setup, 300);
             return;
           }
           
-          // Skip elements outside viewport
-          if (rect.bottom < 0 || rect.top > window.innerHeight ||
-              rect.right < 0 || rect.left > window.innerWidth) {
-            return;
-          }
+          // Run annotation
+          annotateElements();
           
-          // Determine element type
-          const tagName = element.tagName.toLowerCase();
-          let type = 'clickable';
+          // Re-annotate on scroll
+          window.addEventListener('scroll', debouncedAnnotate, { passive: true });
           
-          if (tagName === 'a') type = 'link';
-          else if (tagName === 'button' || element.getAttribute('role') === 'button') type = 'button';
-          else if (tagName === 'input') {
-            const inputType = element.getAttribute('type') || 'text';
-            if (inputType === 'submit' || inputType === 'button') type = 'submit';
-            else if (inputType === 'checkbox') type = 'checkbox';
-            else if (inputType === 'radio') type = 'radio';
-            else if (inputType === 'file') type = 'file';
-            else type = 'input';
-          }
-          else if (tagName === 'select') type = 'select';
-          else if (tagName === 'textarea') type = 'textarea';
-          else if (tagName === 'form') type = 'form';
+          // Re-annotate on resize
+          window.addEventListener('resize', debouncedAnnotate);
           
-          const color = colors[type] || colors.default;
-          
-          // Create annotation overlay
-          const annotation = document.createElement('div');
-          annotation.className = 'playwright-element-annotation';
-          annotation.style.cssText = 
-            'position: fixed;' +
-            'left: ' + rect.left + 'px;' +
-            'top: ' + rect.top + 'px;' +
-            'width: ' + rect.width + 'px;' +
-            'height: ' + rect.height + 'px;' +
-            'border: 2px solid ' + color + ';' +
-            'background: ' + color + '20;' +
-            'pointer-events: none;' +
-            'z-index: 2147483646;' +
-            'box-sizing: border-box;';
-          
-          // Create label with index number
-          const label = document.createElement('div');
-          label.className = 'playwright-element-annotation';
-          label.style.cssText = 
-            'position: fixed;' +
-            'left: ' + (rect.left - 2) + 'px;' +
-            'top: ' + (rect.top - 18) + 'px;' +
-            'background: ' + color + ';' +
-            'color: white;' +
-            'font-size: 11px;' +
-            'font-weight: bold;' +
-            'font-family: monospace;' +
-            'padding: 1px 4px;' +
-            'border-radius: 3px;' +
-            'z-index: 2147483647;' +
-            'pointer-events: none;' +
-            'white-space: nowrap;';
-          label.textContent = index.toString();
-          
-          document.body.appendChild(annotation);
-          document.body.appendChild(label);
-          
-          // Build selector
-          let selector = '';
-          if (element.id) {
-            selector = '#' + element.id;
-          } else {
-            selector = tagName;
-            const classes = Array.from(element.classList).slice(0, 2).join('.');
-            if (classes) selector += '.' + classes;
-          }
-          
-          // Get text content
-          let text = '';
-          if (tagName === 'input' || tagName === 'textarea') {
-            text = element.value || element.placeholder || '';
-          } else {
-            text = element.innerText || element.textContent || '';
-          }
-          text = text.trim().substring(0, 100);
-          
-          // Collect attributes
-          const attrs = {};
-          ['href', 'type', 'name', 'placeholder', 'value', 'role', 'aria-label'].forEach(attr => {
-            if (element.hasAttribute(attr)) {
-              attrs[attr] = element.getAttribute(attr);
-            }
-          });
-          
-          results.push({
-            index: index,
-            type: type,
-            tagName: tagName,
-            text: text,
-            selector: selector,
-            boundingBox: {
-              x: Math.round(rect.left),
-              y: Math.round(rect.top),
-              width: Math.round(rect.width),
-              height: Math.round(rect.height)
-            },
-            attributes: attrs
-          });
-          
-          index++;
-        });
+          // Re-annotate on DOM mutations
+          try {
+            const observer = new MutationObserver(debouncedAnnotate);
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+              attributeFilter: ['style', 'class', 'hidden', 'disabled']
+            });
+          } catch (e) {}
+        }
         
-        window.__playwrightAnnotatedElements = results;
-        return results;
-      }
-      
-      // Debounce function
-      let debounceTimer;
-      function debouncedAnnotate() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(annotateElements, 300);
-      }
-      
-      // Run on DOMContentLoaded
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', annotateElements);
-      } else {
-        annotateElements();
-      }
-      
-      // Re-annotate on scroll
-      window.addEventListener('scroll', debouncedAnnotate, { passive: true });
-      
-      // Re-annotate on resize
-      window.addEventListener('resize', debouncedAnnotate);
-      
-      // Re-annotate on DOM mutations
-      const observer = new MutationObserver(debouncedAnnotate);
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class', 'hidden', 'disabled']
-      });
-      
-      // Expose functions globally
-      window.__playwrightAnnotate = annotateElements;
-      window.__playwrightRemoveAnnotations = function() {
-        const annotations = document.querySelectorAll('.playwright-element-annotation');
-        annotations.forEach(el => el.remove());
-      };
+        // Run setup
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setup);
+        } else {
+          setup();
+        }
+        
+        // Expose functions globally
+        window.__playwrightAnnotate = annotateElements;
+        window.__playwrightRemoveAnnotations = function() {
+          const annotations = document.querySelectorAll('.playwright-element-annotation');
+          annotations.forEach(el => el.remove());
+        };
+      } catch (e) {}
     })();
   `;
 }

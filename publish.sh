@@ -145,7 +145,7 @@ echo "  1. 访问 NPM 页面确认发布成功"
 echo "  2. 测试安装: npx -y @gelenlen/playwright-mcp-server-security"
 echo "  3. 更新 CHANGELOG.md"
 echo "  4. 在 GitHub 创建 Release"
-
+echo "  {"
 echo "  \"mcpServers\": {"
 echo "    \"mcpServers\": {"
 echo "      \"playwright\": {"
