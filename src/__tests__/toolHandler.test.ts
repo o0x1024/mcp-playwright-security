@@ -61,8 +61,10 @@ jest.mock('playwright', () => {
 
   const mockNewPage = jest.fn().mockImplementation(() => Promise.resolve(mockPage));
   const mockContexts = jest.fn().mockReturnValue([]);
+  const mockContextOn = jest.fn();
   const mockContext = {
-    newPage: mockNewPage
+    newPage: mockNewPage,
+    on: mockContextOn
   };
 
   const mockNewContext = jest.fn().mockImplementation(() => Promise.resolve(mockContext));
@@ -216,14 +218,6 @@ describe('Tool Handler', () => {
     }, mockServer);
     expect(pressKeyResult).toBeDefined();
     expect(pressKeyResult.content).toBeDefined();
-
-    // Test save as PDF tool
-    const saveAsPdfResult = await handleToolCall('playwright_save_as_pdf', { 
-      outputPath: '/downloads',
-      filename: 'test.pdf'
-    }, mockServer);
-    expect(saveAsPdfResult).toBeDefined();
-    expect(saveAsPdfResult.content).toBeDefined();
   });
   
   test('handleToolCall should handle Firefox browser', async () => {

@@ -12,12 +12,12 @@ import {
   CustomUserAgentTool,
   AnnotateElementsTool,
   ClickByIndexTool,
+  FillByIndexTool,
   getAutoAnnotationInitScript
 } from './tools/browser/index.js';
 import {
   ClickTool,
   IframeClickTool,
-  FillTool,
   SelectTool,
   HoverTool,
   EvaluateTool,
@@ -62,7 +62,6 @@ let consoleLogsTool: ConsoleLogsTool;
 let clickTool: ClickTool;
 let iframeClickTool: IframeClickTool;
 let iframeFillTool: IframeFillTool;
-let fillTool: FillTool;
 let selectTool: SelectTool;
 let hoverTool: HoverTool;
 let evaluateTool: EvaluateTool;
@@ -80,6 +79,7 @@ let pressKeyTool: PressKeyTool;
 // Element annotation tools
 let annotateElementsTool: AnnotateElementsTool;
 let clickByIndexTool: ClickByIndexTool;
+let fillByIndexTool: FillByIndexTool;
 
 
 interface BrowserSettings {
@@ -372,7 +372,6 @@ function initializeTools(server: any) {
   if (!clickTool) clickTool = new ClickTool(server);
   if (!iframeClickTool) iframeClickTool = new IframeClickTool(server);
   if (!iframeFillTool) iframeFillTool = new IframeFillTool(server);
-  if (!fillTool) fillTool = new FillTool(server);
   if (!selectTool) selectTool = new SelectTool(server);
   if (!hoverTool) hoverTool = new HoverTool(server);
   if (!evaluateTool) evaluateTool = new EvaluateTool(server);
@@ -390,6 +389,7 @@ function initializeTools(server: any) {
   // Element annotation tools
   if (!annotateElementsTool) annotateElementsTool = new AnnotateElementsTool(server);
   if (!clickByIndexTool) clickByIndexTool = new ClickByIndexTool(server);
+  if (!fillByIndexTool) fillByIndexTool = new FillByIndexTool(server);
 }
 
 /**
@@ -501,9 +501,6 @@ export async function handleToolCall(
       case "playwright_iframe_fill":
         return await iframeFillTool.execute(args, context);
         
-      case "playwright_fill":
-        return await fillTool.execute(args, context);
-        
       case "playwright_select":
         return await selectTool.execute(args, context);
         
@@ -540,6 +537,8 @@ export async function handleToolCall(
         return await annotateElementsTool.execute(args, context);
       case "playwright_click_by_index":
         return await clickByIndexTool.execute(args, context);
+      case "playwright_fill_by_index":
+        return await fillByIndexTool.execute(args, context);
       case "playwright_set_auto_annotation":
         setAutoAnnotation(args.enabled);
         return {

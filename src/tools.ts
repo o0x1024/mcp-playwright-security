@@ -95,15 +95,15 @@ export function createToolDefinitions() {
       },
     },
     {
-      name: "playwright_fill",
-      description: "fill out an input field",
+      name: "playwright_fill_by_index",
+      description: "Fill an input field by its annotation index number. Use playwright_annotate or playwright_get_annotated_elements first to get element indices.",
       inputSchema: {
         type: "object",
         properties: {
-          selector: { type: "string", description: "CSS selector for input field" },
+          index: { type: "number", description: "The annotation index number of the input element to fill" },
           value: { type: "string", description: "Value to fill" },
         },
-        required: ["selector", "value"],
+        required: ["index", "value"],
       },
     },
     {
@@ -318,7 +318,7 @@ export const BROWSER_TOOLS = [
   "playwright_click",
   "playwright_iframe_click",
   "playwright_iframe_fill",
-  "playwright_fill",
+  "playwright_fill_by_index",
   "playwright_select",
   "playwright_hover",
   "playwright_evaluate",

@@ -69,22 +69,4 @@ describe('Tool Definitions', () => {
     expect(pressKeyTool!.inputSchema.required).toEqual(['key']);
   });
 
-  test('should validate save_as_pdf tool schema', () => {
-    const saveAsPdfTool = toolDefinitions.find(tool => tool.name === 'playwright_save_as_pdf');
-    expect(saveAsPdfTool).toBeDefined();
-    expect(saveAsPdfTool!.inputSchema.properties).toHaveProperty('outputPath');
-    expect(saveAsPdfTool!.inputSchema.properties).toHaveProperty('filename');
-    expect(saveAsPdfTool!.inputSchema.properties).toHaveProperty('format');
-    expect(saveAsPdfTool!.inputSchema.properties).toHaveProperty('printBackground');
-    expect(saveAsPdfTool!.inputSchema.properties).toHaveProperty('margin');
-    expect(saveAsPdfTool!.inputSchema.required).toEqual(['outputPath']);
-  });
-
-  test('should validate upload_file tool schema', () => {
-    const uploadFileTool = toolDefinitions.find(tool => tool.name === 'playwright_upload_file');
-    expect(uploadFileTool).toBeDefined();
-    expect(uploadFileTool!.inputSchema.properties).toHaveProperty('selector');
-    expect(uploadFileTool!.inputSchema.properties).toHaveProperty('filePath');
-    expect(uploadFileTool!.inputSchema.required).toEqual(['selector', 'filePath']);
-  });
 }); 

@@ -738,6 +738,68 @@ export class ClickByIndexTool extends BrowserToolBase {
   }
 }
 
+/**
+ * Tool for filling input by annotation index
+ */
+export class FillByIndexTool extends BrowserToolBase {
+  /**
+   * Execute fill by index
+   */
+  async execute(args: any, context: ToolContext): Promise<ToolResponse> {
+    const { index, value } = args;
+    
+    if (typeof index !== 'number') {
+      return createErrorResponse("index parameter is required and must be a number");
+    }
+    
+    if (typeof value !== 'string') {
+      return createErrorResponse("value parameter is required and must be a string");
+    }
+    
+    return this.safeExecute(context, async (page) => {
+      // Try to get cached annotated elements first (from auto-annotation)
+      let elements = await page.evaluate(() => {
+        return (window as any).__playwrightAnnotatedElements || [];
+      }) as AnnotatedElement[];
+      
+      // If no cached elements, run annotation script
+      if (elements.length === 0) {
+        elements = await page.evaluate(getAnnotationScript()) as AnnotatedElement[];
+      }
+      
+      // Find element by index
+      const element = elements.find(el => el.index === index);
+      if (!element) {
+        return createErrorResponse(`Element with index ${index} not found. Available indices: 0-${elements.length - 1}`);
+      }
+      
+      // Validate element type is fillable
+      const fillableTypes = ['input', 'textarea', 'select'];
+      if (!fillableTypes.includes(element.type)) {
+        return createErrorResponse(`Element [${index}] is not a fillable element (type: ${element.type}). Expected: input, textarea, or select`);
+      }
+      
+      // Click at center of element to focus it
+      const centerX = element.boundingBox.x + element.boundingBox.width / 2;
+      const centerY = element.boundingBox.y + element.boundingBox.height / 2;
+      
+      // Remove annotations before interacting
+      await page.evaluate(getRemoveAnnotationScript());
+      
+      // Click to focus
+      await page.mouse.click(centerX, centerY);
+      
+      // Clear existing content and type new value
+      await page.keyboard.press('Control+a');
+      await page.keyboard.type(value);
+      
+      return createSuccessResponse(
+        `Filled element [${index}] (${element.type}) with value: ${value}`
+      );
+    });
+  }
+}
+
 // Export annotation script for use in other tools
 export { getAnnotationScript, getRemoveAnnotationScript };
 
