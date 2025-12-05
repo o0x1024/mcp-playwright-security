@@ -624,6 +624,9 @@ function getAnnotationScript() {
         index++;
       });
       
+      // Store results for later retrieval by playwright_get_annotated_elements
+      window.__playwrightAnnotatedElements = results;
+      
       return results;
     })();
   `;

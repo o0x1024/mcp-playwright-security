@@ -554,18 +554,32 @@ export async function handleToolCall(
             const elements = await context.page.evaluate(() => {
               return (window as any).__playwrightAnnotatedElements || [];
             });
-            const summary = elements.map((el: any) => 
-              `[${el.index}] ${el.type.toUpperCase()} (${el.boundingBox.x},${el.boundingBox.y}) - ${el.text || el.selector}`
-            ).join('\n');
+            // Compact format: only include fields necessary for LLM decision-making
+            // Exclude boundingBox, selector, tagName to save tokens
+            const compactElements = elements.map((el: any) => {
+              const compact: any = {
+                i: el.index,         // index (shortened key)
+                t: el.type,          // type
+              };
+              // Only include text if non-empty
+              if (el.text && el.text.trim()) {
+                compact.x = el.text.trim().substring(0, 50); // text (shortened, max 50 chars)
+              }
+              // Only include href for links
+              if (el.attributes?.href) {
+                compact.h = el.attributes.href; // href (shortened key)
+              }
+              // Include placeholder for inputs
+              if (el.attributes?.placeholder) {
+                compact.p = el.attributes.placeholder; // placeholder
+              }
+              return compact;
+            });
             return {
               content: [
                 {
                   type: "text",
-                  text: `Found ${elements.length} annotated elements:\n\n${summary}`
-                },
-                {
-                  type: "text",
-                  text: JSON.stringify({ annotated_elements: elements })
+                  text: JSON.stringify({ annotated_elements: compactElements })
                 }
               ],
               isError: false,
