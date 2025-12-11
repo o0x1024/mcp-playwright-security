@@ -3,7 +3,7 @@ import { chromium, firefox, webkit } from 'playwright';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { BROWSER_TOOLS } from './tools.js';
 import type { ToolContext } from './tools/common/types.js';
-import { 
+import {
   ScreenshotTool,
   NavigationTool,
   CloseBrowserTool,
@@ -23,9 +23,9 @@ import {
   EvaluateTool,
   IframeFillTool
 } from './tools/browser/interaction.js';
-import { 
-  VisibleTextTool, 
-  VisibleHtmlTool 
+import {
+  VisibleTextTool,
+  VisibleHtmlTool
 } from './tools/browser/visiblePage.js';
 import { GoBackTool, GoForwardTool } from './tools/browser/navigation.js';
 import { DragTool, PressKeyTool } from './tools/browser/interaction.js';
@@ -128,8 +128,8 @@ async function registerConsoleMessage(page) {
     window.addEventListener("unhandledrejection", (event) => {
       const reason = event.reason;
       const message = typeof reason === "object" && reason !== null
-          ? reason.message || JSON.stringify(reason)
-          : String(reason);
+        ? reason.message || JSON.stringify(reason)
+        : String(reason);
 
       const stack = reason?.stack || "";
       // Use console.error get "Unhandled Rejection In Promise"
@@ -141,36 +141,152 @@ async function registerConsoleMessage(page) {
 /**
  * Ensures a browser is launched and returns the page
  */
-export async function ensureBrowser(browserSettings?: BrowserSettings) {
-  try {
-    // Check if browser exists but is disconnected
-    if (browser && !browser.isConnected()) {
-      console.error("Browser exists but is disconnected. Cleaning up...");
-      try {
-        await browser.close().catch(err => console.error("Error closing disconnected browser:", err));
-      } catch (e) {
-        // Ignore errors when closing disconnected browser
-      }
-      // Reset browser and page references
-      resetBrowserState();
-    }
+// Promise to handle concurrent browser initialization
+let browserInitPromise: Promise<Page> | undefined;
 
-    // Launch new browser if needed
-    if (!browser) {
-      const { viewport, userAgent, headless = false, browserType = 'chromium', proxy } = browserSettings ?? {};
-      
-      // If browser type is changing, force a new browser instance
-      if (browser && currentBrowserType !== browserType) {
+/**
+ * Ensures a browser is launched and returns the page
+ * properly handling concurrent requests
+ */
+export async function ensureBrowser(browserSettings?: BrowserSettings): Promise<Page> {
+  // If initialization is already in progress, wait for it
+  if (browserInitPromise) {
+    return browserInitPromise;
+  }
+
+  // Create new initialization promise
+  browserInitPromise = (async () => {
+    try {
+      // Check if browser exists but is disconnected
+      if (browser && !browser.isConnected()) {
+        console.error("Browser exists but is disconnected. Cleaning up...");
         try {
-          await browser.close().catch(err => console.error("Error closing browser on type change:", err));
+          await browser.close().catch(err => console.error("Error closing disconnected browser:", err));
         } catch (e) {
-          // Ignore errors
+          // Ignore errors when closing disconnected browser
         }
+        // Reset browser and page references
         resetBrowserState();
       }
-      
-      console.error(`Launching new ${browserType} browser instance...`);
-      
+
+      // Launch new browser if needed
+      if (!browser) {
+        const { viewport, userAgent, headless = false, browserType = 'chromium', proxy } = browserSettings ?? {};
+
+        // If browser type is changing, force a new browser instance
+        if (browser && currentBrowserType !== browserType) {
+          try {
+            await browser.close().catch(err => console.error("Error closing browser on type change:", err));
+          } catch (e) {
+            // Ignore errors
+          }
+          resetBrowserState();
+        }
+
+        console.error(`Launching new ${browserType} browser instance...`);
+
+        // Use the appropriate browser engine
+        let browserInstance;
+        switch (browserType) {
+          case 'firefox':
+            browserInstance = firefox;
+            break;
+          case 'webkit':
+            browserInstance = webkit;
+            break;
+          case 'chromium':
+          default:
+            browserInstance = chromium;
+            break;
+        }
+
+        const executablePath = process.env.CHROME_EXECUTABLE_PATH;
+
+        browser = await browserInstance.launch({
+          headless,
+          executablePath: executablePath,
+          ...(proxy && { proxy })
+        });
+
+        currentBrowserType = browserType;
+
+        // Add cleanup logic when browser is disconnected
+        browser.on('disconnected', () => {
+          console.error("Browser disconnected event triggered");
+          browser = undefined;
+          page = undefined;
+        });
+
+        const context = await browser.newContext({
+          ...userAgent && { userAgent },
+          viewport: {
+            width: viewport?.width ?? 1280,
+            height: viewport?.height ?? 720,
+          },
+          deviceScaleFactor: 1,
+        });
+
+        // Listen for new pages in this context
+        context.on('page', async (newPage) => {
+          console.error("New page opened in context");
+          await registerConsoleMessage(newPage);
+          if (autoAnnotationEnabled) {
+            await setupAutoAnnotation(newPage);
+            // Also execute immediately after page loads
+            newPage.on('load', async () => {
+              try {
+                await newPage.evaluate(getAutoAnnotationInitScript());
+              } catch (e) {
+                // Ignore errors
+              }
+            });
+          }
+        });
+
+        page = await context.newPage();
+
+        // Register console message handler
+        await registerConsoleMessage(page);
+
+        // Setup auto-annotation
+        if (autoAnnotationEnabled) {
+          await setupAutoAnnotation(page);
+        }
+      }
+
+      // Verify page is still valid
+      if (!page || page.isClosed()) {
+        console.error("Page is closed or invalid. Creating new page...");
+        // Create a new page if the current one is invalid
+        const context = browser.contexts()[0] || await browser.newContext();
+        page = await context.newPage();
+
+        // Re-register console message handler
+        await registerConsoleMessage(page);
+
+        // Setup auto-annotation
+        if (autoAnnotationEnabled) {
+          await setupAutoAnnotation(page);
+        }
+      }
+
+      return page!;
+    } catch (error) {
+      console.error("Error ensuring browser:", error);
+      // If something went wrong, clean up completely and retry once
+      try {
+        if (browser) {
+          await browser.close().catch(() => { });
+        }
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+
+      resetBrowserState();
+
+      // Try one more time from scratch
+      const { viewport, userAgent, headless = false, browserType = 'chromium', proxy } = browserSettings ?? {};
+
       // Use the appropriate browser engine
       let browserInstance;
       switch (browserType) {
@@ -185,20 +301,15 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
           browserInstance = chromium;
           break;
       }
-      
-      const executablePath = process.env.CHROME_EXECUTABLE_PATH;
 
       browser = await browserInstance.launch({
         headless,
-        executablePath: executablePath,
         ...(proxy && { proxy })
       });
-      
       currentBrowserType = browserType;
 
-      // Add cleanup logic when browser is disconnected
       browser.on('disconnected', () => {
-        console.error("Browser disconnected event triggered");
+        console.error("Browser disconnected event triggered (retry)");
         browser = undefined;
         page = undefined;
       });
@@ -214,11 +325,10 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
 
       // Listen for new pages in this context
       context.on('page', async (newPage) => {
-        console.error("New page opened in context");
+        console.error("New page opened in context (retry)");
         await registerConsoleMessage(newPage);
         if (autoAnnotationEnabled) {
           await setupAutoAnnotation(newPage);
-          // Also execute immediately after page loads
           newPage.on('load', async () => {
             try {
               await newPage.evaluate(getAutoAnnotationInitScript());
@@ -231,110 +341,22 @@ export async function ensureBrowser(browserSettings?: BrowserSettings) {
 
       page = await context.newPage();
 
-      // Register console message handler
       await registerConsoleMessage(page);
-      
+
       // Setup auto-annotation
       if (autoAnnotationEnabled) {
         await setupAutoAnnotation(page);
       }
-    }
-    
-    // Verify page is still valid
-    if (!page || page.isClosed()) {
-      console.error("Page is closed or invalid. Creating new page...");
-      // Create a new page if the current one is invalid
-      const context = browser.contexts()[0] || await browser.newContext();
-      page = await context.newPage();
-      
-      // Re-register console message handler
-      await registerConsoleMessage(page);
-      
-      // Setup auto-annotation
-      if (autoAnnotationEnabled) {
-        await setupAutoAnnotation(page);
-      }
-    }
-    
-    return page!;
-  } catch (error) {
-    console.error("Error ensuring browser:", error);
-    // If something went wrong, clean up completely and retry once
-    try {
-      if (browser) {
-        await browser.close().catch(() => {});
-      }
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-    
-    resetBrowserState();
-    
-    // Try one more time from scratch
-    const { viewport, userAgent, headless = false, browserType = 'chromium', proxy } = browserSettings ?? {};
-    
-    // Use the appropriate browser engine
-    let browserInstance;
-    switch (browserType) {
-      case 'firefox':
-        browserInstance = firefox;
-        break;
-      case 'webkit':
-        browserInstance = webkit;
-        break;
-      case 'chromium':
-      default:
-        browserInstance = chromium;
-        break;
-    }
-    
-    browser = await browserInstance.launch({ 
-      headless,
-      ...(proxy && { proxy })
-    });
-    currentBrowserType = browserType;
-    
-    browser.on('disconnected', () => {
-      console.error("Browser disconnected event triggered (retry)");
-      browser = undefined;
-      page = undefined;
-    });
 
-    const context = await browser.newContext({
-      ...userAgent && { userAgent },
-      viewport: {
-        width: viewport?.width ?? 1280,
-        height: viewport?.height ?? 720,
-      },
-      deviceScaleFactor: 1,
-    });
-
-    // Listen for new pages in this context
-    context.on('page', async (newPage) => {
-      console.error("New page opened in context (retry)");
-      await registerConsoleMessage(newPage);
-      if (autoAnnotationEnabled) {
-        await setupAutoAnnotation(newPage);
-        newPage.on('load', async () => {
-          try {
-            await newPage.evaluate(getAutoAnnotationInitScript());
-          } catch (e) {
-            // Ignore errors
-          }
-        });
-      }
-    });
-
-    page = await context.newPage();
-    
-    await registerConsoleMessage(page);
-    
-    // Setup auto-annotation
-    if (autoAnnotationEnabled) {
-      await setupAutoAnnotation(page);
+      return page!;
     }
-    
-    return page!;
+  })();
+
+  try {
+    return await browserInitPromise;
+  } finally {
+    // Reset the promise so subsequent calls can check browser state afresh
+    browserInitPromise = undefined;
   }
 }
 
@@ -385,7 +407,7 @@ function initializeTools(server: any) {
   if (!goForwardTool) goForwardTool = new GoForwardTool(server);
   if (!dragTool) dragTool = new DragTool(server);
   if (!pressKeyTool) pressKeyTool = new PressKeyTool(server);
-  
+
   // Element annotation tools
   if (!annotateElementsTool) annotateElementsTool = new AnnotateElementsTool(server);
   if (!clickByIndexTool) clickByIndexTool = new ClickByIndexTool(server);
@@ -437,76 +459,76 @@ export async function handleToolCall(
     if (browser && !browser.isConnected() && BROWSER_TOOLS.includes(name)) {
       console.error("Detected disconnected browser before tool execution, cleaning up...");
       try {
-        await browser.close().catch(() => {}); // Ignore errors
+        await browser.close().catch(() => { }); // Ignore errors
       } catch (e) {
         // Ignore any errors during cleanup
       }
       resetBrowserState();
     }
 
-  // Prepare context based on tool requirements
-  const context: ToolContext = {
-    server
-  };
-  
-  // Set up browser if needed
-  if (BROWSER_TOOLS.includes(name)) {
-    const browserSettings = {
-      viewport: {
-        width: args.width,
-        height: args.height
-      },
-      userAgent: name === "playwright_custom_user_agent" ? args.userAgent : undefined,
-      headless: args.headless,
-      browserType: args.browserType || 'chromium',
-      proxy: args.proxy
+    // Prepare context based on tool requirements
+    const context: ToolContext = {
+      server
     };
-    
-    try {
-      context.page = await ensureBrowser(browserSettings);
-      context.browser = browser;
-    } catch (error) {
-      console.error("Failed to ensure browser:", error);
-      return {
-        content: [{
-          type: "text",
-          text: `Failed to initialize browser: ${(error as Error).message}. Please try again.`,
-        }],
-        isError: true,
+
+    // Set up browser if needed
+    if (BROWSER_TOOLS.includes(name)) {
+      const browserSettings = {
+        viewport: {
+          width: args.width,
+          height: args.height
+        },
+        userAgent: name === "playwright_custom_user_agent" ? args.userAgent : undefined,
+        headless: args.headless,
+        browserType: args.browserType || 'chromium',
+        proxy: args.proxy
       };
+
+      try {
+        context.page = await ensureBrowser(browserSettings);
+        context.browser = browser;
+      } catch (error) {
+        console.error("Failed to ensure browser:", error);
+        return {
+          content: [{
+            type: "text",
+            text: `Failed to initialize browser: ${(error as Error).message}. Please try again.`,
+          }],
+          isError: true,
+        };
+      }
     }
-  }
 
     // Route to appropriate tool
     switch (name) {
       // Browser tools
       case "playwright_navigate":
         return await navigationTool.execute(args, context);
-        
+
       case "playwright_screenshot":
         return await screenshotTool.execute(args, context);
-        
+
       case "playwright_close":
         return await closeBrowserTool.execute(args, context);
-        
+
       case "playwright_console_logs":
         return await consoleLogsTool.execute(args, context);
-        
+
       case "playwright_click":
         return await clickTool.execute(args, context);
-        
+
       case "playwright_iframe_click":
         return await iframeClickTool.execute(args, context);
 
       case "playwright_iframe_fill":
         return await iframeFillTool.execute(args, context);
-        
+
       case "playwright_select":
         return await selectTool.execute(args, context);
-        
+
       case "playwright_hover":
         return await hoverTool.execute(args, context);
-        
+
       case "playwright_evaluate":
         return await evaluateTool.execute(args, context);
 
@@ -515,13 +537,13 @@ export async function handleToolCall(
 
       case "playwright_custom_user_agent":
         return await customUserAgentTool.execute(args, context);
-        
+
       case "playwright_get_visible_text":
         return await visibleTextTool.execute(args, context);
-      
+
       case "playwright_get_visible_html":
         return await visibleHtmlTool.execute(args, context);
-      
+
       // New tools
       case "playwright_go_back":
         return await goBackTool.execute(args, context);
@@ -531,7 +553,7 @@ export async function handleToolCall(
         return await dragTool.execute(args, context);
       case "playwright_press_key":
         return await pressKeyTool.execute(args, context);
-      
+
       // Element annotation tools
       case "playwright_annotate":
         return await annotateElementsTool.execute(args, context);
@@ -601,7 +623,7 @@ export async function handleToolCall(
           }],
           isError: true,
         };
-      
+
       default:
         return {
           content: [{
@@ -613,12 +635,12 @@ export async function handleToolCall(
     }
   } catch (error) {
     console.error(`Error handling tool ${name}:`, error);
-    
+
     // Handle browser-specific errors at the top level
     if (BROWSER_TOOLS.includes(name)) {
       const errorMessage = (error as Error).message;
       if (
-        errorMessage.includes("Target page, context or browser has been closed") || 
+        errorMessage.includes("Target page, context or browser has been closed") ||
         errorMessage.includes("Browser has been disconnected") ||
         errorMessage.includes("Target closed") ||
         errorMessage.includes("Protocol error") ||
