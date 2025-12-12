@@ -15,8 +15,8 @@ export function createToolDefinitions() {
           timeout: { type: "number", description: "Navigation timeout in milliseconds" },
           waitUntil: { type: "string", description: "Navigation wait condition" },
           headless: { type: "boolean", description: "Run browser in headless mode (default: false)" },
-          proxy: { 
-            type: "object", 
+          proxy: {
+            type: "object",
             description: "Proxy settings for the browser",
             properties: {
               server: { type: "string", description: "Proxy server address (e.g., 'http://proxy.example.com:8080')" },
@@ -25,6 +25,11 @@ export function createToolDefinitions() {
               bypass: { type: "string", description: "Optional comma-separated domains to bypass proxy, for example '.com, chromium.org, .domain.com'" }
             },
             required: ["server"]
+          },
+          headers: {
+            type: "object",
+            description: "Custom HTTP headers to send with the request",
+            additionalProperties: { type: "string" }
           }
         },
         required: ["url"],
@@ -55,15 +60,15 @@ export function createToolDefinitions() {
         type: "object",
         properties: {
           selector: { type: "string", description: "CSS selector for the element to click" },
-          coordinate: { 
-            type: "array", 
+          coordinate: {
+            type: "array",
             items: { type: "number" },
-            description: "Screen coordinates [x, y] for mouse click (alternative to selector)" 
+            description: "Screen coordinates [x, y] for mouse click (alternative to selector)"
           },
-          button: { 
-            type: "string", 
+          button: {
+            type: "string",
             enum: ["left", "right", "middle"],
-            description: "Mouse button to use (default: left)" 
+            description: "Mouse button to use (default: left)"
           },
         },
         required: [],

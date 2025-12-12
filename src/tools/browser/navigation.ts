@@ -29,20 +29,24 @@ export class NavigationTool extends BrowserToolBase {
 
     return this.safeExecute(context, async (page) => {
       try {
+        if (args.headers) {
+          await page.setExtraHTTPHeaders(args.headers);
+        }
+
         await page.goto(args.url, {
           timeout: args.timeout || 30000,
           waitUntil: args.waitUntil || "load"
         });
-        
+
         // Execute auto-annotation after navigation if enabled
         if (isAutoAnnotationEnabled()) {
           await page.evaluate(getAutoAnnotationInitScript());
         }
-        
+
         return createSuccessResponse(`Navigated to ${args.url}`);
       } catch (error) {
         const errorMessage = (error as Error).message;
-        
+
         // Check for common disconnection errors
         if (
           errorMessage.includes("Target page, context or browser has been closed") ||
@@ -55,7 +59,7 @@ export class NavigationTool extends BrowserToolBase {
             `Browser connection issue: ${errorMessage}. Connection has been reset - please retry your navigation.`
           );
         }
-        
+
         // For other errors, return the standard error
         throw error;
       }
@@ -88,10 +92,10 @@ export class CloseBrowserTool extends BrowserToolBase {
         // Always reset the global browser and page references
         resetBrowserState();
       }
-      
+
       return createSuccessResponse("Browser closed successfully");
     }
-    
+
     return createSuccessResponse("No browser instance to close");
   }
 }
@@ -106,12 +110,12 @@ export class GoBackTool extends BrowserToolBase {
   async execute(args: any, context: ToolContext): Promise<ToolResponse> {
     return this.safeExecute(context, async (page) => {
       await page.goBack();
-      
+
       // Execute auto-annotation after navigation if enabled
       if (isAutoAnnotationEnabled()) {
         await page.evaluate(getAutoAnnotationInitScript());
       }
-      
+
       return createSuccessResponse("Navigated back in browser history");
     });
   }
@@ -127,12 +131,12 @@ export class GoForwardTool extends BrowserToolBase {
   async execute(args: any, context: ToolContext): Promise<ToolResponse> {
     return this.safeExecute(context, async (page) => {
       await page.goForward();
-      
+
       // Execute auto-annotation after navigation if enabled
       if (isAutoAnnotationEnabled()) {
         await page.evaluate(getAutoAnnotationInitScript());
       }
-      
+
       return createSuccessResponse("Navigated forward in browser history");
     });
   }
