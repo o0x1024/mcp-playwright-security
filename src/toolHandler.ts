@@ -576,8 +576,8 @@ export async function handleToolCall(
             const elements = await context.page.evaluate(() => {
               return (window as any).__playwrightAnnotatedElements || [];
             });
-            // Compact format: only include fields necessary for LLM decision-making
-            // Exclude boundingBox, selector, tagName to save tokens
+            // Compact format: include high-signal semantics for text-only models.
+            // Keep keys short to reduce tokens.
             const compactElements = elements.map((el: any) => {
               const compact: any = {
                 i: el.index,         // index (shortened key)
@@ -594,6 +594,41 @@ export async function handleToolCall(
               // Include placeholder for inputs
               if (el.attributes?.placeholder) {
                 compact.p = el.attributes.placeholder; // placeholder
+              }
+              // Include name (forms)
+              if (el.attributes?.name) {
+                compact.n = String(el.attributes.name).substring(0, 40); // name
+              }
+              // Include role/aria (menus, buttons, accessibility)
+              if (el.attributes?.role) {
+                compact.r = String(el.attributes.role).substring(0, 30); // role
+              }
+              if (el.attributes?.['aria-label']) {
+                compact.al = String(el.attributes['aria-label']).substring(0, 60); // aria-label
+              }
+              if (el.attributes?.['aria-expanded']) {
+                compact.ae = String(el.attributes['aria-expanded']).substring(0, 10); // aria-expanded
+              }
+              if (el.attributes?.['aria-haspopup']) {
+                compact.ah = String(el.attributes['aria-haspopup']).substring(0, 20); // aria-haspopup
+              }
+              // Include testing hooks / identifiers when present
+              if (el.attributes?.id) {
+                compact.id = String(el.attributes.id).substring(0, 40);
+              }
+              if (el.attributes?.['data-testid']) {
+                compact.tid = String(el.attributes['data-testid']).substring(0, 40);
+              }
+              // Include short class hint (often useful in SPAs)
+              if (el.attributes?.class) {
+                compact.c = String(el.attributes.class).substring(0, 80);
+              }
+              // Include tagName / selector if available (shortened)
+              if (el.tagName) {
+                compact.g = String(el.tagName).toLowerCase().substring(0, 12);
+              }
+              if (el.selector) {
+                compact.s = String(el.selector).substring(0, 80);
               }
               return compact;
             });

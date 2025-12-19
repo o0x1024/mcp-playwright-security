@@ -33,6 +33,30 @@ export class NavigationTool extends BrowserToolBase {
           await page.setExtraHTTPHeaders(args.headers);
         }
 
+        // Add local storage support
+        if (args.localStorage) {
+          const origin = new URL(args.url).origin;
+          await page.evaluate((data) => {
+            const { origin, storage } = data;
+            // Only set if we are on the same origin (navigating to it)
+            // Note: Since we haven't navigated yet, we might need a different approach
+            // or rely on page.goto happening first but that might trigger login redirect first.
+            // A better way for initial navigation is to open the page, set storage, then reload if needed
+            // But playwright context.addInitScript is better for this.
+          }, { origin, storage: args.localStorage });
+
+          // Using addInitScript to ensure storage is set before page loads scripts
+          await page.addInitScript((storage) => {
+            // Basic check to ensure we only applying to target domain if needed,
+            // but here we apply to the page being opened.
+            if (window.location.href !== 'about:blank') {
+              for (const [key, value] of Object.entries(storage)) {
+                localStorage.setItem(key, value as string);
+              }
+            }
+          }, args.localStorage);
+        }
+
         await page.goto(args.url, {
           timeout: args.timeout || 30000,
           waitUntil: args.waitUntil || "load"

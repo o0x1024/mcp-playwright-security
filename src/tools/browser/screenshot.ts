@@ -37,27 +37,25 @@ export class ScreenshotTool extends BrowserToolBase {
         screenshotOptions.element = element;
       }
 
-      // Generate output path
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `${args.name || 'screenshot'}-${timestamp}.png`;
-      const downloadsDir = args.downloadsDir || defaultDownloadsPath;
+      const messages: string[] = [];
 
-      if (!fs.existsSync(downloadsDir)) {
-        fs.mkdirSync(downloadsDir, { recursive: true });
+      // Only set path when savePng is explicitly true
+      if (args.savePng === true) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `${args.name || 'screenshot'}-${timestamp}.png`;
+        const downloadsDir = args.downloadsDir || defaultDownloadsPath;
+
+        if (!fs.existsSync(downloadsDir)) {
+          fs.mkdirSync(downloadsDir, { recursive: true });
+        }
+
+        const outputPath = path.join(downloadsDir, filename);
+        screenshotOptions.path = outputPath;
+        messages.push(`Screenshot saved to: ${path.relative(process.cwd(), outputPath)}`);
       }
-
-      const outputPath = path.join(downloadsDir, filename);
-      screenshotOptions.path = outputPath;
 
       const screenshot = await page.screenshot(screenshotOptions);
       const base64Screenshot = screenshot.toString('base64');
-
-      const messages: string[] = [];
-
-      // 仅在 savePng 为 true 时保存文件
-      if (args.savePng !== false) {
-        messages.push(`Screenshot saved to: ${path.relative(process.cwd(), outputPath)}`);
-      }
 
       // Handle base64 storage
       if (args.storeBase64 !== false) {

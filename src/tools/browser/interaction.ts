@@ -254,7 +254,8 @@ export class PressKeyTool extends BrowserToolBase {
       return createSuccessResponse(`Pressed key: ${args.key}`);
     });
   }
-} 
+}
+
 
 
 /**

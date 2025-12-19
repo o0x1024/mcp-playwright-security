@@ -58,9 +58,12 @@ export function getAutoAnnotationInitScript() {
           try {
             if (!document.body) return [];
             
-            // Remove existing annotations
+            // Remove existing annotations and previous index attributes
             const existingAnnotations = document.querySelectorAll('.playwright-element-annotation');
             existingAnnotations.forEach(el => el.remove());
+            document.querySelectorAll('[data-pw-index]').forEach(el => {
+              try { el.removeAttribute('data-pw-index'); } catch (e) {}
+            });
             
             // Find all interactive elements
             const selectors = [
@@ -224,42 +227,8 @@ export function getAutoAnnotationInitScript() {
                 
                 const color = colors[type] || colors.default;
                 
-                // Create annotation overlay
-                const annotation = document.createElement('div');
-                annotation.className = 'playwright-element-annotation';
-                annotation.style.cssText = 
-                  'position: fixed;' +
-                  'left: ' + rect.left + 'px;' +
-                  'top: ' + rect.top + 'px;' +
-                  'width: ' + rect.width + 'px;' +
-                  'height: ' + rect.height + 'px;' +
-                  'border: 2px solid ' + color + ';' +
-                  'background: ' + color + '20;' +
-                  'pointer-events: none;' +
-                  'z-index: 2147483646;' +
-                  'box-sizing: border-box;';
-                
-                // Create label with index number
-                const label = document.createElement('div');
-                label.className = 'playwright-element-annotation';
-                label.style.cssText = 
-                  'position: fixed;' +
-                  'left: ' + (rect.left - 2) + 'px;' +
-                  'top: ' + (rect.top - 18) + 'px;' +
-                  'background: ' + color + ';' +
-                  'color: white;' +
-                  'font-size: 11px;' +
-                  'font-weight: bold;' +
-                  'font-family: monospace;' +
-                  'padding: 1px 4px;' +
-                  'border-radius: 3px;' +
-                  'z-index: 2147483647;' +
-                  'pointer-events: none;' +
-                  'white-space: nowrap;';
-                label.textContent = index.toString();
-                
-                document.body.appendChild(annotation);
-                document.body.appendChild(label);
+                // NOTE: In dense UIs, any overlay (boxes/labels) blocks the VLM from reading real content.
+                // We intentionally do NOT render any visual annotation here.
                 
                 // Build selector
                 let selector = '';
@@ -287,6 +256,9 @@ export function getAutoAnnotationInitScript() {
                     attrs[attr] = element.getAttribute(attr);
                   }
                 });
+
+                // Mark the real DOM element so tools can locate it reliably (avoid coordinate drift)
+                try { element.setAttribute('data-pw-index', index.toString()); } catch (e) {}
                 
                 results.push({
                   index: index,
@@ -373,9 +345,12 @@ export function getAutoAnnotationInitScript() {
 function getAnnotationScript() {
   return `
     (function() {
-      // Remove existing annotations
+      // Remove existing annotations and previous index attributes
       const existingAnnotations = document.querySelectorAll('.playwright-element-annotation');
       existingAnnotations.forEach(el => el.remove());
+      document.querySelectorAll('[data-pw-index]').forEach(el => {
+        try { el.removeAttribute('data-pw-index'); } catch (e) {}
+      });
       
       // Element type colors
       const colors = ${JSON.stringify(ELEMENT_COLORS)};
@@ -540,44 +515,8 @@ function getAnnotationScript() {
         
         const color = colors[type] || colors.default;
         
-        // Create annotation overlay
-        const annotation = document.createElement('div');
-        annotation.className = 'playwright-element-annotation';
-        annotation.style.cssText = \`
-          position: fixed;
-          left: \${rect.left}px;
-          top: \${rect.top}px;
-          width: \${rect.width}px;
-          height: \${rect.height}px;
-          border: 2px solid \${color};
-          background: \${color}20;
-          pointer-events: none;
-          z-index: 2147483646;
-          box-sizing: border-box;
-        \`;
-        
-        // Create label with index number
-        const label = document.createElement('div');
-        label.className = 'playwright-element-annotation';
-        label.style.cssText = \`
-          position: fixed;
-          left: \${rect.left - 2}px;
-          top: \${rect.top - 18}px;
-          background: \${color};
-          color: white;
-          font-size: 11px;
-          font-weight: bold;
-          font-family: monospace;
-          padding: 1px 4px;
-          border-radius: 3px;
-          z-index: 2147483647;
-          pointer-events: none;
-          white-space: nowrap;
-        \`;
-        label.textContent = \`\${index}\`;
-        
-        document.body.appendChild(annotation);
-        document.body.appendChild(label);
+        // NOTE: In dense UIs, any overlay (boxes/labels) blocks the VLM from reading real content.
+        // We intentionally do NOT render any visual annotation here.
         
         // Build selector
         let selector = '';
@@ -598,14 +537,28 @@ function getAnnotationScript() {
         }
         text = text.trim().substring(0, 100);
         
-        // Collect attributes
+        // Collect attributes (text-mode needs rich semantics; keep it concise but useful)
         const attrs = {};
-        ['href', 'type', 'name', 'placeholder', 'value', 'role', 'aria-label'].forEach(attr => {
+        const attrList = [
+          // link / form basics
+          'href', 'type', 'name', 'placeholder', 'value',
+          // accessibility / semantics
+          'role', 'aria-label', 'aria-describedby', 'aria-expanded', 'aria-haspopup', 'aria-controls',
+          // identity / testing hooks
+          'id', 'class', 'data-testid', 'data-test', 'data-cy', 'data-qa',
+          // common hints
+          'title', 'alt', 'for'
+        ];
+        attrList.forEach(attr => {
           if (element.hasAttribute(attr)) {
-            attrs[attr] = element.getAttribute(attr);
+            const v = element.getAttribute(attr);
+            if (v && v.trim()) attrs[attr] = v;
           }
         });
         
+        // Mark the real DOM element so tools can locate it reliably (avoid coordinate drift)
+        try { element.setAttribute('data-pw-index', index.toString()); } catch (e) {}
+
         results.push({
           index: index,
           type: type,
@@ -640,6 +593,9 @@ function getRemoveAnnotationScript() {
     (function() {
       const annotations = document.querySelectorAll('.playwright-element-annotation');
       annotations.forEach(el => el.remove());
+      document.querySelectorAll('[data-pw-index]').forEach(el => {
+        try { el.removeAttribute('data-pw-index'); } catch (e) {}
+      });
     })();
   `;
 }
@@ -723,20 +679,21 @@ export class ClickByIndexTool extends BrowserToolBase {
       if (!element) {
         return createErrorResponse(`Element with index ${index} not found. Available indices: 0-${elements.length - 1}`);
       }
-      
-      // Click at center of element
-      const centerX = element.boundingBox.x + element.boundingBox.width / 2;
-      const centerY = element.boundingBox.y + element.boundingBox.height / 2;
-      
-      // Remove annotations before clicking
-      await page.evaluate(getRemoveAnnotationScript());
-      
-      // Click
-      await page.mouse.click(centerX, centerY);
-      
-      return createSuccessResponse(
-        `Clicked element [${index}] (${element.type}) at (${Math.round(centerX)}, ${Math.round(centerY)})`
-      );
+
+      // Prefer clicking by stable DOM marker to avoid coordinate drift and index/screenshot mismatch
+      const markerSelector = `[data-pw-index="${index}"]`;
+      try {
+        await page.locator(markerSelector).first().click({ timeout: 2000 });
+        return createSuccessResponse(`Clicked element [${index}] (${element.type}) via ${markerSelector}`);
+      } catch (e: any) {
+        // Fallback: click at center of bounding box
+        const centerX = element.boundingBox.x + element.boundingBox.width / 2;
+        const centerY = element.boundingBox.y + element.boundingBox.height / 2;
+        await page.mouse.click(centerX, centerY);
+        return createSuccessResponse(
+          `Clicked element [${index}] (${element.type}) at (${Math.round(centerX)}, ${Math.round(centerY)})`
+        );
+      }
     });
   }
 }
@@ -781,24 +738,27 @@ export class FillByIndexTool extends BrowserToolBase {
       if (!fillableTypes.includes(element.type)) {
         return createErrorResponse(`Element [${index}] is not a fillable element (type: ${element.type}). Expected: input, textarea, or select`);
       }
-      
-      // Click at center of element to focus it
-      const centerX = element.boundingBox.x + element.boundingBox.width / 2;
-      const centerY = element.boundingBox.y + element.boundingBox.height / 2;
-      
-      // Remove annotations before interacting
-      await page.evaluate(getRemoveAnnotationScript());
-      
-      // Click to focus
-      await page.mouse.click(centerX, centerY);
-      
-      // Clear existing content and type new value
-      await page.keyboard.press('Control+a');
-      await page.keyboard.type(value);
-      
-      return createSuccessResponse(
-        `Filled element [${index}] (${element.type}) with value: ${value}`
-      );
+
+      const markerSelector = `[data-pw-index="${index}"]`;
+
+      // Prefer filling via locator to avoid coordinate drift
+      try {
+        const loc = page.locator(markerSelector).first();
+        if (element.type === 'select' || element.tagName === 'select') {
+          await loc.selectOption({ value });
+        } else {
+          await loc.fill(value);
+        }
+        return createSuccessResponse(`Filled element [${index}] (${element.type}) via ${markerSelector}`);
+      } catch (e: any) {
+        // Fallback: click and type
+        const centerX = element.boundingBox.x + element.boundingBox.width / 2;
+        const centerY = element.boundingBox.y + element.boundingBox.height / 2;
+        await page.mouse.click(centerX, centerY);
+        await page.keyboard.press('Control+a');
+        await page.keyboard.type(value);
+        return createSuccessResponse(`Filled element [${index}] (${element.type}) with value: ${value}`);
+      }
     });
   }
 }
